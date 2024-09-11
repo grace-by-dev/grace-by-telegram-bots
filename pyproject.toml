@@ -1,0 +1,23 @@
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "B", "C4", "UP", "N", "ANN001", "ANN2", "S", "BLE", "A", "ICN",
+    "PIE", "SIM", "ERA", "PD", "PLW", "PERF", "RUF", "ARG"
+]
+ignore = ["W291", "PERF203", "ARG", "ANN", "S311",]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+force-single-line = true
+force-sort-within-sections = true
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
