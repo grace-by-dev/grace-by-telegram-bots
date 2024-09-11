@@ -11,8 +11,8 @@ import yaml
 
 from common import utils
 import config
-from homechurch.src.roles import Role
-from homechurch.src.user_utils import UserUtils
+from homechurch import Role
+from homechurch import UserUtils
 
 
 read = load_dotenv("homechurch/.env")
