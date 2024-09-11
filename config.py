@@ -1,2 +1,2 @@
 # homechurch_bot config
-SECRET_ANGEL = True
+SECRET_ANGEL = False

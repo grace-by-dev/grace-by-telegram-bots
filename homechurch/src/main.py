@@ -11,14 +11,14 @@ import yaml
 
 from common import utils
 import config
-from homechurch_bot.src.roles import Role
-from homechurch_bot.src.user_utils import UserUtils
+from homechurch.src.roles import Role
+from homechurch.src.user_utils import UserUtils
 
 
-read = load_dotenv("homechurch_bot/.env")
+read = load_dotenv("homechurch/.env")
 token = os.getenv("TOKEN")
-database_file = "homechurch_bot/data.db"
-yaml_file = "homechurch_bot/resources/replies.yaml"
+database_file = "homechurch/data.db"
+yaml_file = "homechurch/resources/replies.yaml"
 
 with open(yaml_file, encoding="utf-8") as f:
     replies = yaml.safe_load(f)
