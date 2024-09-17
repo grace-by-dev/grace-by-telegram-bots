@@ -1,3 +1,4 @@
+gspread==6.1.2
 python-dotenv
 # requirements
 telebot==0.0.5
