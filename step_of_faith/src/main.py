@@ -26,7 +26,7 @@ bot = telebot.TeleBot(token)
 
 logger = utils.get_logger(__name__)
 
-sheets = GoogleSheets(env_file)
+sheets = GoogleSheets(env_file, yaml_file)
 sqlite = SQLite(env_file)
 user_utils = UserUtils(env_file, yaml_file)
 
