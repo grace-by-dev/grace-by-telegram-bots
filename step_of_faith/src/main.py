@@ -204,6 +204,31 @@ def echo(message: types.Message) -> None:
     bot.send_message(message.from_user.id, message.text[5:])
 
 
+# command cancel
+@bot.message_handler(commands=["cancel"])
+def cancel(message: telebot.types.Message) -> None:
+    text = None
+    if str(message.from_user.id) in waiting_for_question:
+        waiting_for_question.remove(str(message.from_user.id))
+        text = replies["button"]["ask_question"]["cancel"]
+
+    elif str(message.from_user.id) in waiting_for_feedback:
+        waiting_for_feedback.remove(str(message.from_user.id))
+        text = replies["button"]["feedback"]["cancel"]
+
+    elif str(message.from_user.id) in waiting_for_user_info:
+        del waiting_for_user_info[str(message.from_user.id)]
+        text = replies["button"]["appointment"]["counselor"]["cancel"]
+
+    if text is not None:
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        menu_btn = types.InlineKeyboardButton(
+            text=replies["button"]["back"], callback_data="func_menu"
+        )
+        keyboard.add(menu_btn)
+        bot.send_message(message.from_user.id, text, reply_markup=keyboard)
+
+
 # check for answer
 @bot.message_handler(func=lambda message: str(message.from_user.id) in waiting_for_question)
 def answer_for_question(message: types.Message) -> None:
@@ -266,27 +291,6 @@ def answer_for_user_info(message: types.Message) -> None:
             replies["button"]["appointment"]["counselor"]["success"],
             reply_markup=keyboard,
         )
-
-
-# command cancel
-@bot.message_handler(commands=["cancel"])
-def cancel(message: telebot.types.Message) -> None:
-    if str(message.from_user.id) in waiting_for_question:
-        waiting_for_question.remove(str(message.from_user.id))
-        text = replies["button"]["ask_question"]["cancel"]
-
-    elif str(message.from_user.id) in waiting_for_feedback:
-        waiting_for_feedback.remove(str(message.from_user.id))
-        text = replies["button"]["feedback"]["cancel"]
-
-    elif str(message.from_user.id) in waiting_for_user_info:
-        del waiting_for_user_info[str(message.from_user.id)]
-        text = replies["button"]["appointment"]["counselor"]["cancel"]
-
-    keyboard = types.InlineKeyboardMarkup(row_width=1)
-    menu_btn = types.InlineKeyboardButton(text=replies["button"]["back"], callback_data="func_menu")
-    keyboard.add(menu_btn)
-    bot.send_message(message.from_user.id, text, reply_markup=keyboard)
 
 
 # command start
