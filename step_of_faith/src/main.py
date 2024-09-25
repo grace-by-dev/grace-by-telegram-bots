@@ -37,7 +37,7 @@ waiting_for_user_info = {}
 
 
 # make an appointment with a counselor 1
-def function_counselor_1(callback: types.CallbackQuery) -> None:
+def counselor_1(callback: types.CallbackQuery) -> None:
     waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 1}
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
     bot.send_message(
@@ -46,7 +46,7 @@ def function_counselor_1(callback: types.CallbackQuery) -> None:
 
 
 # make an appointment with a counselor 2
-def function_counselor_2(callback: types.CallbackQuery) -> None:
+def counselor_2(callback: types.CallbackQuery) -> None:
     waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 2}
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
     bot.send_message(
@@ -55,7 +55,7 @@ def function_counselor_2(callback: types.CallbackQuery) -> None:
 
 
 # make an appointment with a counselor 3
-def function_counselor_3(callback: types.CallbackQuery) -> None:
+def counselor_3(callback: types.CallbackQuery) -> None:
     waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 3}
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
     bot.send_message(
@@ -64,7 +64,7 @@ def function_counselor_3(callback: types.CallbackQuery) -> None:
 
 
 # make an appointment with a counselor 4
-def function_counselor_4(callback: types.CallbackQuery) -> None:
+def counselor_4(callback: types.CallbackQuery) -> None:
     waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 4}
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
     bot.send_message(
@@ -73,7 +73,7 @@ def function_counselor_4(callback: types.CallbackQuery) -> None:
 
 
 # function show menu
-def function_show_menu(callback: types.CallbackQuery) -> None:
+def show_menu(callback: types.CallbackQuery) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     btn_schedule = types.InlineKeyboardButton(
         text=replies["button"]["menu"]["schedule"], callback_data="func_schedule"
@@ -110,7 +110,7 @@ def function_show_menu(callback: types.CallbackQuery) -> None:
 
 
 # function for getting schedule
-def function_show_schedule(callback: types.CallbackQuery) -> None:
+def show_schedule(callback: types.CallbackQuery) -> None:
     schedule_text = sheets.get_schedule()
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="func_menu")
@@ -124,7 +124,7 @@ def function_show_schedule(callback: types.CallbackQuery) -> None:
 
 
 # function for make an appointment with a counselor
-def function_make_appointment(callback: types.CallbackQuery) -> None:
+def make_appointment(callback: types.CallbackQuery) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     counselor_1_bnt = types.InlineKeyboardButton(
         text=replies["button"]["appointment"]["counselor_1"], callback_data="func_counselor_1"
@@ -149,7 +149,7 @@ def function_make_appointment(callback: types.CallbackQuery) -> None:
 
 
 # function for write question
-def function_ask_question(callback: types.CallbackQuery) -> None:
+def ask_question(callback: types.CallbackQuery) -> None:
     if str(callback.from_user.id) not in waiting_for_question:
         waiting_for_question.append(str(callback.from_user.id))
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
@@ -157,7 +157,7 @@ def function_ask_question(callback: types.CallbackQuery) -> None:
 
 
 # function for write feedback
-def function_write_feedback(callback: types.CallbackQuery) -> None:
+def write_feedback(callback: types.CallbackQuery) -> None:
     if str(callback.from_user.id) not in waiting_for_feedback:
         waiting_for_feedback.append(str(callback.from_user.id))
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
@@ -165,7 +165,7 @@ def function_write_feedback(callback: types.CallbackQuery) -> None:
 
 
 # function send social network
-def function_show_social_networks(callback: types.CallbackQuery) -> None:
+def show_social_networks(callback: types.CallbackQuery) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     telegram_btn = types.InlineKeyboardButton(
         text=replies["button"]["social_networks"]["telegram"],
@@ -186,7 +186,7 @@ def function_show_social_networks(callback: types.CallbackQuery) -> None:
 
 
 # function send church schedule
-def function_show_church_schedule(callback: types.CallbackQuery) -> None:
+def show_church_schedule(callback: types.CallbackQuery) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="func_menu")
     keyboard.add(cancel)
@@ -313,27 +313,27 @@ def menu(message: telebot.types.Message) -> None:
 @bot.callback_query_handler(func=lambda callback: callback.data)
 def check_callback_data(callback: types.CallbackQuery) -> None:
     if callback.data == "func_menu":
-        function_show_menu(callback)
+        show_menu(callback)
     elif callback.data == "func_schedule":
-        function_show_schedule(callback)
+        show_schedule(callback)
     elif callback.data == "func_appointment":
-        function_make_appointment(callback)
+        make_appointment(callback)
     elif callback.data == "func_question":
-        function_ask_question(callback)
+        ask_question(callback)
     elif callback.data == "func_feedback":
-        function_write_feedback(callback)
+        write_feedback(callback)
     elif callback.data == "func_social_networks":
-        function_show_social_networks(callback)
+        show_social_networks(callback)
     elif callback.data == "func_church_schedule":
-        function_show_church_schedule(callback)
+        show_church_schedule(callback)
     elif callback.data == "func_counselor_1":
-        function_counselor_1(callback)
+        counselor_1(callback)
     elif callback.data == "func_counselor_2":
-        function_counselor_2(callback)
+        counselor_2(callback)
     elif callback.data == "func_counselor_3":
-        function_counselor_3(callback)
+        counselor_3(callback)
     elif callback.data == "func_counselor_4":
-        function_counselor_4(callback)
+        counselor_4(callback)
 
 
 # command ban
