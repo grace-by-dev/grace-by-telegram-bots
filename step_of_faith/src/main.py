@@ -37,7 +37,7 @@ waiting_for_user_info = {}
 
 
 # make an appointment with a counselor 1
-def counselor_1(callback: types.CallbackQuery) -> None:
+def schedule_counselor_appointment_1(callback: types.CallbackQuery) -> None:
     waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 1}
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
     bot.send_message(
@@ -46,7 +46,7 @@ def counselor_1(callback: types.CallbackQuery) -> None:
 
 
 # make an appointment with a counselor 2
-def counselor_2(callback: types.CallbackQuery) -> None:
+def schedule_counselor_appointment_2(callback: types.CallbackQuery) -> None:
     waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 2}
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
     bot.send_message(
@@ -55,7 +55,7 @@ def counselor_2(callback: types.CallbackQuery) -> None:
 
 
 # make an appointment with a counselor 3
-def counselor_3(callback: types.CallbackQuery) -> None:
+def schedule_counselor_appointment_3(callback: types.CallbackQuery) -> None:
     waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 3}
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
     bot.send_message(
@@ -64,7 +64,7 @@ def counselor_3(callback: types.CallbackQuery) -> None:
 
 
 # make an appointment with a counselor 4
-def counselor_4(callback: types.CallbackQuery) -> None:
+def schedule_counselor_appointment_4(callback: types.CallbackQuery) -> None:
     waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 4}
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
     bot.send_message(
@@ -327,13 +327,13 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
     elif callback.data == "func_church_schedule":
         show_church_schedule(callback)
     elif callback.data == "func_counselor_1":
-        counselor_1(callback)
+        schedule_counselor_appointment_1(callback)
     elif callback.data == "func_counselor_2":
-        counselor_2(callback)
+        schedule_counselor_appointment_2(callback)
     elif callback.data == "func_counselor_3":
-        counselor_3(callback)
+        schedule_counselor_appointment_3(callback)
     elif callback.data == "func_counselor_4":
-        counselor_4(callback)
+        schedule_counselor_appointment_4(callback)
 
 
 # command ban
