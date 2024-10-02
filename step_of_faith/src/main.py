@@ -37,35 +37,8 @@ waiting_for_user_info = {}
 
 
 # make an appointment with a counselor 1
-def schedule_counselor_appointment_1(callback: types.CallbackQuery) -> None:
-    waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 1}
-    bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
-    bot.send_message(
-        callback.from_user.id, replies["button"]["appointment"]["counselor"]["first_name"]
-    )
-
-
-# make an appointment with a counselor 2
-def schedule_counselor_appointment_2(callback: types.CallbackQuery) -> None:
-    waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 2}
-    bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
-    bot.send_message(
-        callback.from_user.id, replies["button"]["appointment"]["counselor"]["first_name"]
-    )
-
-
-# make an appointment with a counselor 3
-def schedule_counselor_appointment_3(callback: types.CallbackQuery) -> None:
-    waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 3}
-    bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
-    bot.send_message(
-        callback.from_user.id, replies["button"]["appointment"]["counselor"]["first_name"]
-    )
-
-
-# make an appointment with a counselor 4
-def schedule_counselor_appointment_4(callback: types.CallbackQuery) -> None:
-    waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 4}
+def schedule_counselor_appointment(callback: types.CallbackQuery, counselor_id: int) -> None:
+    waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": counselor_id}
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
     bot.send_message(
         callback.from_user.id, replies["button"]["appointment"]["counselor"]["first_name"]
@@ -341,7 +314,7 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
 def ban(message: types.Message) -> None:
     if not sqlite.is_banned(message.from_user.id):
         if sqlite.is_admin(message.from_user.id):
-            username = user_utils.select_username_from_text(message.text[5:])
+            username = message.text.split()[1]
             completed = sqlite.change_ban_status(username, 1)
             if completed:
                 bot.send_message(
@@ -358,7 +331,7 @@ def ban(message: types.Message) -> None:
 def unban(message: types.Message) -> None:
     if not sqlite.is_banned(message.from_user.id):
         if sqlite.is_admin(message.from_user.id):
-            username = user_utils.select_username_from_text(message.text[7:])
+            username = message.text.split()[1]
             completed = sqlite.change_ban_status(username, 0)
             if completed:
                 bot.send_message(
