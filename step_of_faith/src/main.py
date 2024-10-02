@@ -8,7 +8,7 @@ import yaml
 
 from common import utils
 from step_of_faith.src.google_sheets import GoogleSheets
-from step_of_faith.src.sqlite import SQLite
+from step_of_faith.src.postgres_sql import PostgresSQL
 from step_of_faith.src.user_utils import UserUtils
 
 
@@ -27,7 +27,7 @@ bot = telebot.TeleBot(token)
 logger = utils.get_logger(__name__)
 
 sheets = GoogleSheets(env_file, yaml_file)
-sqlite = SQLite(env_file)
+sql = PostgresSQL()
 user_utils = UserUtils(env_file, yaml_file)
 
 # for callback data
@@ -296,9 +296,10 @@ def answer_for_user_info(message: types.Message) -> None:
 # command start
 @bot.message_handler(commands=["start", "help", "menu"])
 def menu(message: telebot.types.Message) -> None:
-    if not sqlite.check_user_id(message.from_user.id):
-        sqlite.add_to_database(message.from_user.id, message.from_user.username)
-    if not sqlite.is_banned(message.from_user.id):
+    if not sql.check_user_id(message.from_user.id):
+        sql.add_to_database(message.from_user.id, message.from_user.username)
+    current = sql.is_banned(message.from_user.id)
+    if not current:
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         menu_btn = types.InlineKeyboardButton(
             text=replies["button"]["menu"]["btn_text"], callback_data="func_menu"
@@ -339,10 +340,10 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
 # command ban
 @bot.message_handler(regexp="^/ban ")
 def ban(message: types.Message) -> None:
-    if not sqlite.is_banned(message.from_user.id):
-        if sqlite.is_admin(message.from_user.id):
+    if not sql.is_banned(message.from_user.id):
+        if sql.is_admin(message.from_user.id):
             username = user_utils.select_username_from_text(message.text[5:])
-            completed = sqlite.change_ban_status(username, 1)
+            completed = sql.change_ban_status(username, 1)
             if completed:
                 bot.send_message(
                     message.from_user.id, replies["ban"]["success"].format(username=username)
@@ -356,10 +357,10 @@ def ban(message: types.Message) -> None:
 # command ban
 @bot.message_handler(regexp="^/unban ")
 def unban(message: types.Message) -> None:
-    if not sqlite.is_banned(message.from_user.id):
-        if sqlite.is_admin(message.from_user.id):
+    if not sql.is_banned(message.from_user.id):
+        if sql.is_admin(message.from_user.id):
             username = user_utils.select_username_from_text(message.text[7:])
-            completed = sqlite.change_ban_status(username, 0)
+            completed = sql.change_ban_status(username, 0)
             if completed:
                 bot.send_message(
                     message.from_user.id, replies["unban"]["success"].format(username=username)
