@@ -11,6 +11,7 @@ def get_connection() -> object:
         dbname=os.getenv("DATABSE"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD"),
+        options="-c search_path=step_of_faith",
     )
 
 
@@ -22,7 +23,7 @@ class PostgresSQL:
     def add_to_database(self, user_id: int, username: str) -> None:
         with get_connection().cursor() as cursor:
             cursor.execute(
-                "INSERT INTO step_of_faith.users (user_id, username) VALUES (%s, %s)",
+                "INSERT INTO users (user_id, username) VALUES (%s, %s)",
                 (user_id, username),
             )
 
@@ -30,16 +31,14 @@ class PostgresSQL:
     def check_user_id(self, user_id: int) -> bool:
         with get_connection().cursor() as cursor:
             data = cursor.execute(
-                "SELECT user_id FROM step_of_faith.users WHERE user_id = %s", (user_id,)
+                "SELECT user_id FROM users WHERE user_id = %s", (user_id,)
             ).fetchone()
         return data is not None
 
     # checking ban status of user
     def is_banned(self, user_id: int) -> bool:
         with get_connection().cursor() as cursor:
-            data = cursor.execute(
-                "SELECT ban FROM step_of_faith.users WHERE user_id = %s", (user_id,)
-            ).fetchone()
+            data = cursor.execute("SELECT ban FROM users WHERE user_id = %s", (user_id,)).fetchone()
         if data is not None:
             return data[0]
 
@@ -47,7 +46,7 @@ class PostgresSQL:
     def is_admin(self, user_id: int) -> bool:
         with get_connection().cursor() as cursor:
             data = cursor.execute(
-                "SELECT admin FROM step_of_faith.users WHERE user_id = %s", (user_id,)
+                "SELECT admin FROM users WHERE user_id = %s", (user_id,)
             ).fetchone()
         if data is not None:
             return data[0]
@@ -56,12 +55,12 @@ class PostgresSQL:
     def change_ban_status(self, username: str, ban: bool) -> None:
         with get_connection().cursor() as cursor:
             data = cursor.execute(
-                "SELECT ban FROM step_of_faith.users WHERE username = %s", (username,)
+                "SELECT ban FROM users WHERE username = %s", (username,)
             ).fetchone()
             if data is not None:
                 if data[0] != ban:
                     cursor.execute(
-                        "UPDATE step_of_faith.users SET ban = %s WHERE username = %s",
+                        "UPDATE users SET ban = %s WHERE username = %s",
                         (ban, username),
                     )
                     return True
