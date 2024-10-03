@@ -300,13 +300,13 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
     elif callback.data == "func_church_schedule":
         show_church_schedule(callback)
     elif callback.data == "func_counselor_1":
-        schedule_counselor_appointment_1(callback)
+        schedule_counselor_appointment(callback, 1)
     elif callback.data == "func_counselor_2":
-        schedule_counselor_appointment_2(callback)
+        schedule_counselor_appointment(callback, 2)
     elif callback.data == "func_counselor_3":
-        schedule_counselor_appointment_3(callback)
+        schedule_counselor_appointment(callback, 3)
     elif callback.data == "func_counselor_4":
-        schedule_counselor_appointment_4(callback)
+        schedule_counselor_appointment(callback, 4)
 
 
 # command ban
