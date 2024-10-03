@@ -1,4 +1,6 @@
+gspread==6.1.2
+psycopg==3.2.3
+psycopg-binary==3.2.3
 python-dotenv
 # requirements
 telebot==0.0.5
-gspread==6.1.2
