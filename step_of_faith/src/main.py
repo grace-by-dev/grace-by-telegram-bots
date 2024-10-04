@@ -8,7 +8,7 @@ import yaml
 
 from common import utils
 from step_of_faith.src.google_sheets import GoogleSheets
-from step_of_faith.src.postgres_sql import PostgresSQL
+from step_of_faith.src.postgres_sql import PostgreSQL
 from step_of_faith.src.user_utils import UserUtils
 
 
@@ -27,7 +27,7 @@ bot = telebot.TeleBot(token)
 logger = utils.get_logger(__name__)
 
 sheets = GoogleSheets(env_file, yaml_file)
-sql = PostgresSQL()
+sql = PostgreSQL()
 user_utils = UserUtils(env_file, yaml_file)
 
 # for callback data
