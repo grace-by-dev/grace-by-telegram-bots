@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 import psycopg
+import yaml
 
 
 def get_connection() -> object:
@@ -16,8 +17,10 @@ def get_connection() -> object:
 
 
 class PostgreSQL:
-    def __init__(self) -> None:
+    def __init__(self, yaml_file: str) -> None:
         self.read = load_dotenv()
+        with open(yaml_file, encoding="utf-8") as f:
+            self.replies = yaml.safe_load(f)
 
     # add to the database
     def add_to_database(self, user_id: int, username: str) -> None:
@@ -52,7 +55,7 @@ class PostgreSQL:
 
     # change ban status
     def change_ban_status(self, username: str, ban: bool) -> None:
-        with get_connection().cursor() as cur:
+        with get_connection() as conn, conn.cursor() as cur:
             data = cur.execute("SELECT ban FROM users WHERE username = %s", (username,)).fetchone()
             if data is not None:
                 if data[0] != ban:
@@ -60,6 +63,26 @@ class PostgreSQL:
                         "UPDATE users SET ban = %s WHERE username = %s",
                         (ban, username),
                     )
+                    conn.commit()
                     return True
             else:
                 return False
+
+    # write message to database
+    def write_message(self, message_type: str, message: str) -> None:
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO feedbacks (type, data) VALUES (%s, %s)", (message_type, message)
+            )
+            conn.commit()
+
+    # get schedule from sheet
+    def get_schedule(self, day: int) -> str:
+        result = self.replies["button"]["schedule"]["text"]["head"]
+        with get_connection().cursor() as cur:
+            schedule = cur.execute("SELECT time, event FROM schedule WHERE day = (%s)", (day,))
+            for event in schedule:
+                result += self.replies["button"]["schedule"]["text"]["body"].format(
+                    time=str(event[0])[:5], event=event[1]
+                )
+        return result
