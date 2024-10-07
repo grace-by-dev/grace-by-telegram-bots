@@ -7,7 +7,6 @@ from telebot import types
 import yaml
 
 from common import utils
-from step_of_faith.src.google_sheets import GoogleSheets
 from step_of_faith.src.postgres_sql import PostgreSQL
 from step_of_faith.src.user_utils import UserUtils
 
@@ -26,8 +25,7 @@ bot = telebot.TeleBot(token)
 
 logger = utils.get_logger(__name__)
 
-sheets = GoogleSheets(env_file, yaml_file)
-sql = PostgreSQL()
+sql = PostgreSQL(yaml_file)
 user_utils = UserUtils(env_file, yaml_file)
 
 # for callback data
@@ -76,7 +74,7 @@ def function_counselor_4(callback: types.CallbackQuery) -> None:
 def function_show_menu(callback: types.CallbackQuery) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     btn_schedule = types.InlineKeyboardButton(
-        text=replies["button"]["menu"]["schedule"], callback_data="func_schedule"
+        text=replies["button"]["menu"]["schedule"], callback_data="func_show_days"
     )
     btn_appointment = types.InlineKeyboardButton(
         text=replies["button"]["menu"]["appointment"], callback_data="func_appointment"
@@ -109,16 +107,39 @@ def function_show_menu(callback: types.CallbackQuery) -> None:
     )
 
 
-# function for getting schedule
-def function_show_schedule(callback: types.CallbackQuery) -> None:
-    schedule_text = sheets.get_schedule()
+# function for show schedule
+def function_show_schedule(callback: types.CallbackQuery, day: int) -> None:
+    schedule_text = sql.get_schedule(day)
     keyboard = types.InlineKeyboardMarkup(row_width=1)
-    cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="func_menu")
+    cancel = types.InlineKeyboardButton(
+        text=replies["button"]["cancel"], callback_data="func_show_days"
+    )
     keyboard.add(cancel)
     bot.edit_message_text(
         chat_id=callback.message.chat.id,
         message_id=callback.message.id,
         text=schedule_text,
+        reply_markup=keyboard,
+    )
+
+
+# function for show days
+def function_show_days(callback: types.CallbackQuery) -> None:
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    btn_first_day = types.InlineKeyboardButton(
+        text=replies["button"]["schedule"]["days"]["first"],
+        callback_data="func_show_first_day_schedule",
+    )
+    btn_second_day = types.InlineKeyboardButton(
+        text=replies["button"]["schedule"]["days"]["second"],
+        callback_data="func_show_second_day_schedule",
+    )
+    cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="func_menu")
+    keyboard.add(btn_first_day, btn_second_day, cancel)
+    bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.id,
+        text=replies["button"]["schedule"]["days"]["text"],
         reply_markup=keyboard,
     )
 
@@ -233,7 +254,7 @@ def cancel(message: telebot.types.Message) -> None:
 @bot.message_handler(func=lambda message: str(message.from_user.id) in waiting_for_question)
 def answer_for_question(message: types.Message) -> None:
     waiting_for_question.remove(str(message.from_user.id))
-    sheets.write_question(message.text)
+    sql.write_message("question", message.text)
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     back_to_menu_btn = types.InlineKeyboardButton(
         text=replies["button"]["back"], callback_data="func_menu"
@@ -248,7 +269,7 @@ def answer_for_question(message: types.Message) -> None:
 @bot.message_handler(func=lambda message: str(message.from_user.id) in waiting_for_feedback)
 def answer_for_feedback(message: types.Message) -> None:
     waiting_for_feedback.remove(str(message.from_user.id))
-    sheets.write_feedback(message.text)
+    sql.write_message("feedback", message.text)
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     back_to_menu_btn = types.InlineKeyboardButton(
         text=replies["button"]["back"], callback_data="func_menu"
@@ -277,7 +298,7 @@ def answer_for_user_info(message: types.Message) -> None:
         )
     elif data["progress"] == 2:
         data["phone"] = message.text
-        sheets.write_to_talk(
+        sql.write_to_talk(
             data["counselor"], [data["first_name"], data["second_name"], data["phone"]]
         )
         del waiting_for_user_info[str(message.from_user.id)]
@@ -315,8 +336,12 @@ def menu(message: telebot.types.Message) -> None:
 def check_callback_data(callback: types.CallbackQuery) -> None:
     if callback.data == "func_menu":
         function_show_menu(callback)
-    elif callback.data == "func_schedule":
-        function_show_schedule(callback)
+    elif callback.data == "func_show_days":
+        function_show_days(callback)
+    elif callback.data == "func_show_first_day_schedule":
+        function_show_schedule(callback, 1)
+    elif callback.data == "func_show_second_day_schedule":
+        function_show_schedule(callback, 2)
     elif callback.data == "func_appointment":
         function_make_appointment(callback)
     elif callback.data == "func_question":
