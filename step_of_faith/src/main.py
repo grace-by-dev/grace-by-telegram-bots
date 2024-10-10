@@ -25,7 +25,7 @@ bot = telebot.TeleBot(token)
 
 logger = utils.get_logger(__name__)
 
-sql = PostgreSQL(yaml_file)
+sql = PostgreSQL()
 user_utils = UserUtils(env_file, yaml_file)
 
 # for callback data
@@ -109,7 +109,8 @@ def function_show_menu(callback: types.CallbackQuery) -> None:
 
 # function for show schedule
 def function_show_schedule(callback: types.CallbackQuery, day: int) -> None:
-    schedule_text = sql.get_schedule(day)
+    schedule = sql.get_schedule(day)
+    schedule_text = user_utils.formation_text_of_schedule(schedule)
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     cancel = types.InlineKeyboardButton(
         text=replies["button"]["cancel"], callback_data="func_show_days"
@@ -397,5 +398,6 @@ def unban(message: types.Message) -> None:
 
 
 # RUN BOT
-logger.info("START BOT...")
-bot.polling()
+if __name__ == "__main__":
+    logger.info("START BOT...")
+    bot.infinity_polling()

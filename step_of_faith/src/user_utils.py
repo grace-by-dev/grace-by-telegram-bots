@@ -24,3 +24,11 @@ class UserUtils:
             return "".join(username)
         else:
             return "none"
+
+    def formation_text_of_schedule(self, schedule: object) -> str:
+        result = self.replies["button"]["schedule"]["text"]["head"]
+        for event in schedule:
+            result += self.replies["button"]["schedule"]["text"]["body"].format(
+                time=str(event[0])[:5], event=event[1]
+            )
+        return result
