@@ -20,11 +20,11 @@ class PostgreSQL:
         self.read = load_dotenv()
 
     # add to the database
-    def add_to_database(self, user_id: int, username: str) -> None:
+    def add_to_database(self, user_id: int) -> None:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO users (user_id, username) VALUES (%s, %s)",
-                (user_id, username),
+                "INSERT INTO users (user_id) VALUES (%s)",
+                (user_id,),
             )
             conn.commit()
 

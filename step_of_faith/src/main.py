@@ -318,7 +318,7 @@ def answer_for_feedback(message: types.Message) -> None:
 @bot.message_handler(commands=["start", "help", "menu"])
 def menu(message: telebot.types.Message) -> None:
     if not sql.check_user_id(message.from_user.id):
-        sql.add_to_database(message.from_user.id, message.from_user.username)
+        sql.add_to_database(message.from_user.id)
     current = sql.is_banned(message.from_user.id)
     if not current:
         keyboard = types.InlineKeyboardMarkup(row_width=1)
