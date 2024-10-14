@@ -12,6 +12,7 @@ button:
     btn_text: "Меню"
     schedule: "Расписание"
     appointment: "Душепопечение"
+    seminar: "Семинары"
     question: "Задать вопрос"
     feedback: "feedback"
     social_networks: "Подпишись"
@@ -43,6 +44,11 @@ button:
     counselor_1579542191: "Counselor 2"
     counselor_1423320265: "Counselor 3"
     counselor_1425388011: "Counselor 4"
+  seminar:
+    text: "Семинары:"
+    worship: "Worship"
+    other: "Other"
+    cancel: "Отменить запись"
   ask_question:
     text: "Задайте свой вопрос:\nЧто бы отменить отправьте /cancel"
     success: "Вопрос успешно записан."
