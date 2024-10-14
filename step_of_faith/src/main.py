@@ -1,4 +1,5 @@
 # step of faith telegram bot
+from datetime import datetime
 import os
 
 from dotenv import load_dotenv
@@ -7,7 +8,6 @@ from telebot import types
 import yaml
 
 from common import utils
-from step_of_faith.src.google_sheets import GoogleSheets
 from step_of_faith.src.postgres_sql import PostgreSQL
 from step_of_faith.src.user_utils import UserUtils
 
@@ -26,72 +26,34 @@ bot = telebot.TeleBot(token)
 
 logger = utils.get_logger(__name__)
 
-sheets = GoogleSheets(env_file, yaml_file)
 sql = PostgreSQL()
 user_utils = UserUtils(env_file, yaml_file)
 
 # for callback data
 waiting_for_question = []
 waiting_for_feedback = []
-waiting_for_user_info = {}
-
-
-# make an appointment with a counselor 1
-def function_counselor_1(callback: types.CallbackQuery) -> None:
-    waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 1}
-    bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
-    bot.send_message(
-        callback.from_user.id, replies["button"]["appointment"]["counselor"]["first_name"]
-    )
-
-
-# make an appointment with a counselor 2
-def function_counselor_2(callback: types.CallbackQuery) -> None:
-    waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 2}
-    bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
-    bot.send_message(
-        callback.from_user.id, replies["button"]["appointment"]["counselor"]["first_name"]
-    )
-
-
-# make an appointment with a counselor 3
-def function_counselor_3(callback: types.CallbackQuery) -> None:
-    waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 3}
-    bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
-    bot.send_message(
-        callback.from_user.id, replies["button"]["appointment"]["counselor"]["first_name"]
-    )
-
-
-# make an appointment with a counselor 4
-def function_counselor_4(callback: types.CallbackQuery) -> None:
-    waiting_for_user_info[str(callback.from_user.id)] = {"progress": 0, "counselor": 4}
-    bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
-    bot.send_message(
-        callback.from_user.id, replies["button"]["appointment"]["counselor"]["first_name"]
-    )
 
 
 # function show menu
-def function_show_menu(callback: types.CallbackQuery) -> None:
+def show_menu(callback: types.CallbackQuery) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     btn_schedule = types.InlineKeyboardButton(
-        text=replies["button"]["menu"]["schedule"], callback_data="func_schedule"
+        text=replies["button"]["menu"]["schedule"], callback_data="show_days"
     )
     btn_appointment = types.InlineKeyboardButton(
-        text=replies["button"]["menu"]["appointment"], callback_data="func_appointment"
+        text=replies["button"]["menu"]["appointment"], callback_data="counselor_appointment"
     )
     btn_question = types.InlineKeyboardButton(
-        text=replies["button"]["menu"]["question"], callback_data="func_question"
+        text=replies["button"]["menu"]["question"], callback_data="question"
     )
     btn_feedback = types.InlineKeyboardButton(
-        text=replies["button"]["menu"]["feedback"], callback_data="func_feedback"
+        text=replies["button"]["menu"]["feedback"], callback_data="feedback"
     )
     btn_social_networks = types.InlineKeyboardButton(
-        text=replies["button"]["menu"]["social_networks"], callback_data="func_social_networks"
+        text=replies["button"]["menu"]["social_networks"], callback_data="social_networks"
     )
     btn_church_schedule = types.InlineKeyboardButton(
-        text=replies["button"]["menu"]["church_schedule"], callback_data="func_church_schedule"
+        text=replies["button"]["menu"]["church_schedule"], callback_data="church_schedule"
     )
     keyboard.add(
         btn_schedule,
@@ -109,11 +71,33 @@ def function_show_menu(callback: types.CallbackQuery) -> None:
     )
 
 
-# function for getting schedule
-def function_show_schedule(callback: types.CallbackQuery) -> None:
-    schedule_text = sheets.get_schedule()
+# function for show days
+def show_days(callback: types.CallbackQuery) -> None:
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    btn_first_day = types.InlineKeyboardButton(
+        text=replies["button"]["schedule"]["days"]["first"],
+        callback_data="show_first_day_schedule",
+    )
+    btn_second_day = types.InlineKeyboardButton(
+        text=replies["button"]["schedule"]["days"]["second"],
+        callback_data="show_second_day_schedule",
+    )
+    cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="menu")
+    keyboard.add(btn_first_day, btn_second_day, cancel)
+    bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.id,
+        text=replies["button"]["schedule"]["days"]["text"],
+        reply_markup=keyboard,
+    )
+
+
+# function for show schedule
+def show_schedule(callback: types.CallbackQuery, day: int) -> None:
+    schedule = sql.get_schedule(day)
+    schedule_text = user_utils.formation_text_of_schedule(schedule)
     keyboard = types.InlineKeyboardMarkup(row_width=1)
-    cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="func_menu")
+    cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="show_days")
     keyboard.add(cancel)
     bot.edit_message_text(
         chat_id=callback.message.chat.id,
@@ -123,23 +107,19 @@ def function_show_schedule(callback: types.CallbackQuery) -> None:
     )
 
 
-# function for make an appointment with a counselor
-def function_make_appointment(callback: types.CallbackQuery) -> None:
+# appointment menu
+def counselor_appointment_menu(callback: types.CallbackQuery) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=2)
-    counselor_1_bnt = types.InlineKeyboardButton(
-        text=replies["button"]["appointment"]["counselor_1"], callback_data="func_counselor_1"
+    make_an_appointment_btn = types.InlineKeyboardButton(
+        text=replies["button"]["make_an_appointment"],
+        callback_data="show_counselors",
     )
-    counselor_2_bnt = types.InlineKeyboardButton(
-        text=replies["button"]["appointment"]["counselor_2"], callback_data="func_counselor_2"
+    delete_appointment_btn = types.InlineKeyboardButton(
+        text=replies["button"]["delete_appointment"],
+        callback_data="delete_counselor_appointment",
     )
-    counselor_3_bnt = types.InlineKeyboardButton(
-        text=replies["button"]["appointment"]["counselor_3"], callback_data="func_counselor_3"
-    )
-    counselor_4_bnt = types.InlineKeyboardButton(
-        text=replies["button"]["appointment"]["counselor_4"], callback_data="func_counselor_4"
-    )
-    cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="func_menu")
-    keyboard.add(counselor_1_bnt, counselor_2_bnt, counselor_3_bnt, counselor_4_bnt, cancel)
+    cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="menu")
+    keyboard.add(make_an_appointment_btn, delete_appointment_btn, cancel)
     bot.edit_message_text(
         chat_id=callback.message.chat.id,
         message_id=callback.message.id,
@@ -148,8 +128,89 @@ def function_make_appointment(callback: types.CallbackQuery) -> None:
     )
 
 
+# make an counselor appointment
+def show_counselors(callback: types.CallbackQuery) -> None:
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    counselors = sql.get_counselors()
+    for counselor in counselors:
+        counselor_btn = types.InlineKeyboardButton(
+            text=replies["button"]["appointment"][f"counselor_{counselor}"],
+            callback_data=f"get_times_for_counselor_appointment_{counselor}",
+        )
+        keyboard.add(counselor_btn)
+    cancel = types.InlineKeyboardButton(
+        text=replies["button"]["cancel"], callback_data="counselor_appointment"
+    )
+    keyboard.add(cancel)
+    bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.id,
+        text=replies["button"]["appointment"]["text"],
+        reply_markup=keyboard,
+    )
+
+
+# make an counselor appointment
+def get_times_for_counselor_appointment(callback: types.CallbackQuery, counselor_id: str) -> None:
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    times = sql.get_counselor_appointment_times(counselor_id)
+    for time in times:
+        time_btn = types.InlineKeyboardButton(
+            text=replies["button"]["clock"] + str(time[0])[:5],
+            callback_data=f"write_to_time_{time[0]}{counselor_id}",
+        )
+        keyboard.add(time_btn)
+    cancel = types.InlineKeyboardButton(
+        text=replies["button"]["cancel"], callback_data="show_counselors"
+    )
+    keyboard.add(cancel)
+    bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.id,
+        text=replies["button"]["appointment"]["text"],
+        reply_markup=keyboard,
+    )
+
+
+# write_user_to_schedule_counselor_appointment
+def write_user_to_schedule_counselor_appointment(
+    callback: types.CallbackQuery, time: str, counselor_id: str
+) -> None:
+    time = datetime.strptime(time, "%H:%M:%S").time()
+    success = sql.write_user_to_schedule_counselor_appointment(
+        counselor_id, time, callback.from_user.id
+    )
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    menu_btn = types.InlineKeyboardButton(text=replies["button"]["back"], callback_data="menu")
+    keyboard.add(menu_btn)
+    if success:
+        text = replies["button"]["writing_success"]
+    else:
+        text = replies["button"]["writing_unsuccess"]
+    bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.id,
+        text=text,
+        reply_markup=keyboard,
+    )
+
+
+# delete counselor appointment
+def delete_counselor_appointment(callback: types.CallbackQuery) -> None:
+    sql.delete_user_from_schedule_counselor_appointment(callback.from_user.id)
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    cancel = types.InlineKeyboardButton(text=replies["button"]["back"], callback_data="menu")
+    keyboard.add(cancel)
+    bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.id,
+        text=replies["button"]["appointment_removed"],
+        reply_markup=keyboard,
+    )
+
+
 # function for write question
-def function_ask_question(callback: types.CallbackQuery) -> None:
+def write_question(callback: types.CallbackQuery) -> None:
     if str(callback.from_user.id) not in waiting_for_question:
         waiting_for_question.append(str(callback.from_user.id))
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
@@ -157,7 +218,7 @@ def function_ask_question(callback: types.CallbackQuery) -> None:
 
 
 # function for write feedback
-def function_write_feedback(callback: types.CallbackQuery) -> None:
+def write_feedback(callback: types.CallbackQuery) -> None:
     if str(callback.from_user.id) not in waiting_for_feedback:
         waiting_for_feedback.append(str(callback.from_user.id))
     bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.id)
@@ -165,7 +226,7 @@ def function_write_feedback(callback: types.CallbackQuery) -> None:
 
 
 # function send social network
-def function_show_social_networks(callback: types.CallbackQuery) -> None:
+def show_social_networks(callback: types.CallbackQuery) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     telegram_btn = types.InlineKeyboardButton(
         text=replies["button"]["social_networks"]["telegram"],
@@ -175,7 +236,7 @@ def function_show_social_networks(callback: types.CallbackQuery) -> None:
         text=replies["button"]["social_networks"]["instagram"],
         url=replies["button"]["social_networks"]["instagram_url"],
     )
-    cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="func_menu")
+    cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="menu")
     keyboard.add(telegram_btn, instagram_btn, cancel)
     bot.edit_message_text(
         chat_id=callback.message.chat.id,
@@ -186,9 +247,9 @@ def function_show_social_networks(callback: types.CallbackQuery) -> None:
 
 
 # function send church schedule
-def function_show_church_schedule(callback: types.CallbackQuery) -> None:
+def show_church_schedule(callback: types.CallbackQuery) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=1)
-    cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="func_menu")
+    cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="menu")
     keyboard.add(cancel)
     bot.edit_message_text(
         chat_id=callback.message.chat.id,
@@ -216,15 +277,9 @@ def cancel(message: telebot.types.Message) -> None:
         waiting_for_feedback.remove(str(message.from_user.id))
         text = replies["button"]["feedback"]["cancel"]
 
-    elif str(message.from_user.id) in waiting_for_user_info:
-        del waiting_for_user_info[str(message.from_user.id)]
-        text = replies["button"]["appointment"]["counselor"]["cancel"]
-
     if text is not None:
         keyboard = types.InlineKeyboardMarkup(row_width=1)
-        menu_btn = types.InlineKeyboardButton(
-            text=replies["button"]["back"], callback_data="func_menu"
-        )
+        menu_btn = types.InlineKeyboardButton(text=replies["button"]["back"], callback_data="menu")
         keyboard.add(menu_btn)
         bot.send_message(message.from_user.id, text, reply_markup=keyboard)
 
@@ -233,10 +288,10 @@ def cancel(message: telebot.types.Message) -> None:
 @bot.message_handler(func=lambda message: str(message.from_user.id) in waiting_for_question)
 def answer_for_question(message: types.Message) -> None:
     waiting_for_question.remove(str(message.from_user.id))
-    sheets.write_question(message.text)
+    sql.write_message("question", message.text)
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     back_to_menu_btn = types.InlineKeyboardButton(
-        text=replies["button"]["back"], callback_data="func_menu"
+        text=replies["button"]["back"], callback_data="menu"
     )
     keyboard.add(back_to_menu_btn)
     bot.send_message(
@@ -248,49 +303,15 @@ def answer_for_question(message: types.Message) -> None:
 @bot.message_handler(func=lambda message: str(message.from_user.id) in waiting_for_feedback)
 def answer_for_feedback(message: types.Message) -> None:
     waiting_for_feedback.remove(str(message.from_user.id))
-    sheets.write_feedback(message.text)
+    sql.write_message("feedback", message.text)
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     back_to_menu_btn = types.InlineKeyboardButton(
-        text=replies["button"]["back"], callback_data="func_menu"
+        text=replies["button"]["back"], callback_data="menu"
     )
     keyboard.add(back_to_menu_btn)
     bot.send_message(
         message.from_user.id, replies["button"]["feedback"]["success"], reply_markup=keyboard
     )
-
-
-# check for user info
-@bot.message_handler(func=lambda message: str(message.from_user.id) in waiting_for_user_info)
-def answer_for_user_info(message: types.Message) -> None:
-    data = waiting_for_user_info[str(message.from_user.id)]
-    if data["progress"] == 0:
-        data["first_name"] = message.text
-        data["progress"] = 1
-        bot.send_message(
-            message.from_user.id, replies["button"]["appointment"]["counselor"]["second_name"]
-        )
-    elif data["progress"] == 1:
-        data["second_name"] = message.text
-        data["progress"] = 2
-        bot.send_message(
-            message.from_user.id, replies["button"]["appointment"]["counselor"]["phone"]
-        )
-    elif data["progress"] == 2:
-        data["phone"] = message.text
-        sheets.write_to_talk(
-            data["counselor"], [data["first_name"], data["second_name"], data["phone"]]
-        )
-        del waiting_for_user_info[str(message.from_user.id)]
-        keyboard = types.InlineKeyboardMarkup(row_width=1)
-        back_to_menu_btn = types.InlineKeyboardButton(
-            text=replies["button"]["back"], callback_data="func_menu"
-        )
-        keyboard.add(back_to_menu_btn)
-        bot.send_message(
-            message.from_user.id,
-            replies["button"]["appointment"]["counselor"]["success"],
-            reply_markup=keyboard,
-        )
 
 
 # command start
@@ -302,7 +323,7 @@ def menu(message: telebot.types.Message) -> None:
     if not current:
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         menu_btn = types.InlineKeyboardButton(
-            text=replies["button"]["menu"]["btn_text"], callback_data="func_menu"
+            text=replies["button"]["menu"]["btn_text"], callback_data="menu"
         )
         keyboard.add(menu_btn)
         bot.send_message(message.from_user.id, replies["welcome"], reply_markup=keyboard)
@@ -313,28 +334,34 @@ def menu(message: telebot.types.Message) -> None:
 # check callback data
 @bot.callback_query_handler(func=lambda callback: callback.data)
 def check_callback_data(callback: types.CallbackQuery) -> None:
-    if callback.data == "func_menu":
-        function_show_menu(callback)
-    elif callback.data == "func_schedule":
-        function_show_schedule(callback)
-    elif callback.data == "func_appointment":
-        function_make_appointment(callback)
-    elif callback.data == "func_question":
-        function_ask_question(callback)
-    elif callback.data == "func_feedback":
-        function_write_feedback(callback)
-    elif callback.data == "func_social_networks":
-        function_show_social_networks(callback)
-    elif callback.data == "func_church_schedule":
-        function_show_church_schedule(callback)
-    elif callback.data == "func_counselor_1":
-        function_counselor_1(callback)
-    elif callback.data == "func_counselor_2":
-        function_counselor_2(callback)
-    elif callback.data == "func_counselor_3":
-        function_counselor_3(callback)
-    elif callback.data == "func_counselor_4":
-        function_counselor_4(callback)
+    if callback.data == "menu":
+        show_menu(callback)
+    elif callback.data == "show_days":
+        show_days(callback)
+    elif callback.data == "show_first_day_schedule":
+        show_schedule(callback, 1)
+    elif callback.data == "show_second_day_schedule":
+        show_schedule(callback, 2)
+    elif callback.data == "counselor_appointment":
+        counselor_appointment_menu(callback)
+    elif callback.data == "question":
+        write_question(callback)
+    elif callback.data == "feedback":
+        write_feedback(callback)
+    elif callback.data == "social_networks":
+        show_social_networks(callback)
+    elif callback.data == "church_schedule":
+        show_church_schedule(callback)
+    elif callback.data == "show_counselors":
+        show_counselors(callback)
+    elif callback.data == "delete_counselor_appointment":
+        delete_counselor_appointment(callback)
+    elif callback.data[:36] == "get_times_for_counselor_appointment_":
+        get_times_for_counselor_appointment(callback, callback.data[36:])
+    elif callback.data[:14] == "write_to_time_":
+        write_user_to_schedule_counselor_appointment(
+            callback, callback.data[14:22], callback.data[22:]
+        )
 
 
 # command ban
@@ -372,5 +399,6 @@ def unban(message: types.Message) -> None:
 
 
 # RUN BOT
-logger.info("START BOT...")
-bot.polling()
+if __name__ == "__main__":
+    logger.info("START BOT...")
+    bot.infinity_polling()
