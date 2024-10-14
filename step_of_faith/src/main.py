@@ -33,6 +33,9 @@ user_utils = UserUtils(env_file, yaml_file)
 waiting_for_question = []
 waiting_for_feedback = []
 
+# seminar list
+seminars = ["worship", "other"]
+
 
 # function show menu
 def show_menu(callback: types.CallbackQuery) -> None:
@@ -42,6 +45,9 @@ def show_menu(callback: types.CallbackQuery) -> None:
     )
     btn_appointment = types.InlineKeyboardButton(
         text=replies["button"]["menu"]["appointment"], callback_data="counselor_appointment"
+    )
+    btn_seminar_registration = types.InlineKeyboardButton(
+        text=replies["button"]["menu"]["seminar"], callback_data="seminar_registration"
     )
     btn_question = types.InlineKeyboardButton(
         text=replies["button"]["menu"]["question"], callback_data="question"
@@ -58,6 +64,7 @@ def show_menu(callback: types.CallbackQuery) -> None:
     keyboard.add(
         btn_schedule,
         btn_appointment,
+        btn_seminar_registration,
         btn_question,
         btn_feedback,
         btn_social_networks,
@@ -209,6 +216,47 @@ def delete_counselor_appointment(callback: types.CallbackQuery) -> None:
     )
 
 
+# function for show buttons of seminars
+def show_seminars(callback: types.CallbackQuery) -> None:
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    for seminar in seminars:
+        seminar_btn = types.InlineKeyboardButton(
+            text=replies["button"]["seminar"][seminar],
+            callback_data=f"seminar_{seminar}",
+        )
+        keyboard.add(seminar_btn)
+    cancel = types.InlineKeyboardButton(
+        text=replies["button"]["seminar"]["cancel"], callback_data="seminar_None"
+    )
+    back = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="menu")
+    keyboard.add(cancel, back)
+    bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.id,
+        text=replies["button"]["seminar"]["text"],
+        reply_markup=keyboard,
+    )
+
+
+def set_seminar_for_user(callback: types.CallbackQuery, seminar: str) -> None:
+    if seminar == "None":
+        seminar = None
+    sql.setup_seminar_for_user(callback.from_user.id, seminar)
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    menu_btn = types.InlineKeyboardButton(text=replies["button"]["back"], callback_data="menu")
+    keyboard.add(menu_btn)
+    if seminar:
+        text = replies["button"]["writing_success"]
+    else:
+        text = replies["button"]["appointment_removed"]
+    bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.id,
+        text=text,
+        reply_markup=keyboard,
+    )
+
+
 # function for write question
 def write_question(callback: types.CallbackQuery) -> None:
     if str(callback.from_user.id) not in waiting_for_question:
@@ -344,6 +392,10 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
         show_schedule(callback, 2)
     elif callback.data == "counselor_appointment":
         counselor_appointment_menu(callback)
+    elif callback.data == "seminar_registration":
+        show_seminars(callback)
+    elif callback.data[:8] == "seminar_":
+        set_seminar_for_user(callback, callback.data[8:])
     elif callback.data == "question":
         write_question(callback)
     elif callback.data == "feedback":

@@ -150,3 +150,8 @@ class PostgreSQL:
             """,
                 (user_id,),
             )
+
+    # set up seminar for user
+    def setup_seminar_for_user(self, user_id: int, seminar: str | None) -> None:
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute("UPDATE users SET seminar = %s WHERE user_id = %s", (seminar, user_id))
