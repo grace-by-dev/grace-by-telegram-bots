@@ -129,8 +129,8 @@ class PostgreSQL:
             check_data = list(
                 cur.execute(
                     """SELECT * FROM schedule_counselor_appointment
-                WHERE counselor_id = %s and time = %s and user_id = %s
-                LIMIT 1""",
+                    WHERE counselor_id = %s and time = %s and user_id = %s
+                    LIMIT 1""",
                     (counselor_id, time, user_id),
                 )
             )
@@ -139,6 +139,19 @@ class PostgreSQL:
             and check_data[0][1] == time
             and check_data[0][2] == user_id
         )
+
+    # get ucounselor appointment of user
+    def get_user_counselor_appointment(self, user_id: int) -> list:
+        with get_connection().cursor() as cur:
+            result = list(
+                cur.execute(
+                    """SELECT counselor_id, time FROM schedule_counselor_appointment
+                    WHERE user_id = %s
+                    LIMIT 1""",
+                    (user_id,),
+                )
+            )
+            return result
 
     # delete_user_from_schedule_counselor_appointment
     def delete_user_from_schedule_counselor_appointment(self, user_id: int) -> None:
