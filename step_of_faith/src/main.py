@@ -34,7 +34,16 @@ waiting_for_question = []
 waiting_for_feedback = []
 
 # seminar list
-seminars = ["worship", "other"]
+seminars = [
+    "seminar_1",
+    "seminar_2",
+    "seminar_3",
+    "seminar_4",
+    "seminar_5",
+    "seminar_6",
+    "seminar_7",
+    "seminar_8",
+]
 
 
 # function show menu
@@ -121,12 +130,12 @@ def counselor_appointment_menu(callback: types.CallbackQuery) -> None:
         text=replies["button"]["make_an_appointment"],
         callback_data="show_counselors",
     )
-    delete_appointment_btn = types.InlineKeyboardButton(
-        text=replies["button"]["delete_appointment"],
-        callback_data="delete_counselor_appointment",
+    appointment_status = types.InlineKeyboardButton(
+        text=replies["button"]["appointment"]["my_appointment"],
+        callback_data="my_appointment",
     )
     cancel = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="menu")
-    keyboard.add(make_an_appointment_btn, delete_appointment_btn, cancel)
+    keyboard.add(make_an_appointment_btn, appointment_status, cancel)
     bot.edit_message_text(
         chat_id=callback.message.chat.id,
         message_id=callback.message.id,
@@ -141,8 +150,8 @@ def show_counselors(callback: types.CallbackQuery) -> None:
     counselors = sql.get_counselors()
     for counselor in counselors:
         counselor_btn = types.InlineKeyboardButton(
-            text=replies["button"]["appointment"][f"counselor_{counselor}"],
-            callback_data=f"get_times_for_counselor_appointment_{counselor}",
+            text=replies["button"]["appointment"][f"counselor_{counselor}"]["name"],
+            callback_data=f"show_counselor::{counselor}",
         )
         keyboard.add(counselor_btn)
     cancel = types.InlineKeyboardButton(
@@ -158,13 +167,13 @@ def show_counselors(callback: types.CallbackQuery) -> None:
 
 
 # make an counselor appointment
-def get_times_for_counselor_appointment(callback: types.CallbackQuery, counselor_id: str) -> None:
+def show_counselor(callback: types.CallbackQuery, counselor_id: str) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     times = sql.get_counselor_appointment_times(counselor_id)
     for time in times:
         time_btn = types.InlineKeyboardButton(
             text=replies["button"]["clock"] + str(time[0])[:5],
-            callback_data=f"write_to_time_{time[0]}{counselor_id}",
+            callback_data=f"write_appointment::{time[0]}::{counselor_id}",
         )
         keyboard.add(time_btn)
     cancel = types.InlineKeyboardButton(
@@ -202,6 +211,44 @@ def write_user_to_schedule_counselor_appointment(
     )
 
 
+# my_appointment
+def my_appointment(callback: types.CallbackQuery) -> None:
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    cancel = types.InlineKeyboardButton(
+        text=replies["button"]["cancel"], callback_data="counselor_appointment"
+    )
+    data = sql.get_user_counselor_appointment(callback.from_user.id)
+
+    if not data:
+        status = False
+    else:
+        status = True
+        counselor_id, time = next(iter(data))
+
+    if status:
+        text = replies["button"]["appointment"]["appointment_info"].format(
+            counselor_name=replies["button"]["appointment"][f"counselor_{counselor_id}"]["name"],
+            time=str(time)[:5],
+            info_about_counselor=replies["button"]["appointment"][f"counselor_{counselor_id}"][
+                "info"
+            ],
+        )
+        cancel_appointment_btn = types.InlineKeyboardButton(
+            text=replies["button"]["delete_appointment"], callback_data="cancel_appointment"
+        )
+        keyboard.add(cancel_appointment_btn, cancel)
+    else:
+        text = replies["button"]["appointment"]["not_appointment_info"]
+        keyboard.add(cancel)
+
+    bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.id,
+        text=text,
+        reply_markup=keyboard,
+    )
+
+
 # delete counselor appointment
 def delete_counselor_appointment(callback: types.CallbackQuery) -> None:
     sql.delete_user_from_schedule_counselor_appointment(callback.from_user.id)
@@ -221,12 +268,12 @@ def show_seminars(callback: types.CallbackQuery) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     for seminar in seminars:
         seminar_btn = types.InlineKeyboardButton(
-            text=replies["button"]["seminar"][seminar],
-            callback_data=f"seminar_{seminar}",
+            text=replies["button"]["seminar"][seminar]["name"],
+            callback_data=seminar.replace("_", "::"),
         )
         keyboard.add(seminar_btn)
     cancel = types.InlineKeyboardButton(
-        text=replies["button"]["seminar"]["cancel"], callback_data="seminar_None"
+        text=replies["button"]["delete_appointment"], callback_data="seminar::None"
     )
     back = types.InlineKeyboardButton(text=replies["button"]["cancel"], callback_data="menu")
     keyboard.add(cancel, back)
@@ -238,14 +285,17 @@ def show_seminars(callback: types.CallbackQuery) -> None:
     )
 
 
-def set_seminar_for_user(callback: types.CallbackQuery, seminar: str) -> None:
-    if seminar == "None":
-        seminar = None
-    sql.setup_seminar_for_user(callback.from_user.id, seminar)
+def set_seminar_for_user(callback: types.CallbackQuery, seminar_id: str) -> None:
+    if seminar_id == "None":
+        seminar_id = None
+    sql.setup_seminar_for_user(
+        callback.from_user.id,
+        [replies["button"]["seminar"][f"seminar_{seminar_id}"]["name"] if seminar_id else None],
+    )
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     menu_btn = types.InlineKeyboardButton(text=replies["button"]["back"], callback_data="menu")
     keyboard.add(menu_btn)
-    if seminar:
+    if seminar_id:
         text = replies["button"]["writing_success"]
     else:
         text = replies["button"]["appointment_removed"]
@@ -394,8 +444,8 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
         counselor_appointment_menu(callback)
     elif callback.data == "seminar_registration":
         show_seminars(callback)
-    elif callback.data[:8] == "seminar_":
-        set_seminar_for_user(callback, callback.data[8:])
+    elif callback.data.startswith("seminar::"):
+        set_seminar_for_user(callback, callback.data.split("::")[1])
     elif callback.data == "question":
         write_question(callback)
     elif callback.data == "feedback":
@@ -406,14 +456,16 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
         show_church_schedule(callback)
     elif callback.data == "show_counselors":
         show_counselors(callback)
-    elif callback.data == "delete_counselor_appointment":
+    elif callback.data.startswith("show_counselor::"):
+        counselor_id = callback.data.split("::")[1]
+        show_counselor(callback, counselor_id)
+    elif callback.data.startswith("write_appointment::"):
+        time, counselor_id = list(callback.data.split("::")[1:])
+        write_user_to_schedule_counselor_appointment(callback, time, counselor_id)
+    elif callback.data == "my_appointment":
+        my_appointment(callback)
+    elif callback.data == "cancel_appointment":
         delete_counselor_appointment(callback)
-    elif callback.data[:36] == "get_times_for_counselor_appointment_":
-        get_times_for_counselor_appointment(callback, callback.data[36:])
-    elif callback.data[:14] == "write_to_time_":
-        write_user_to_schedule_counselor_appointment(
-            callback, callback.data[14:22], callback.data[22:]
-        )
 
 
 # command ban
