@@ -36,13 +36,6 @@ waiting_for_question = []
 waiting_for_feedback = []
 
 
-def formation_text_of_schedule(schedule: object) -> str:
-    result = buttons["schedule"]["reply"]
-    for event in schedule:
-        result += buttons["schedule"]["point"].format(time=str(event[0])[:5], event=event[1])
-    return result
-
-
 # function for create keyboard
 def create_keyboard(button: object, columns: int) -> object:
     keyboard = types.InlineKeyboardMarkup(row_width=columns)
@@ -91,6 +84,13 @@ def render_keyboard_message(
     )
 
 
+def formation_text_of_schedule(schedule: object) -> str:
+    result = buttons["schedule"]["reply"]
+    for event in schedule:
+        result += buttons["schedule"]["point"].format(time=str(event[0])[:5], event=event[1])
+    return result
+
+
 # function show menu
 def show_menu(callback: types.CallbackQuery) -> None:
     render_keyboard_message(callback, buttons["menu"], columns=2)
@@ -122,8 +122,11 @@ def show_counselors(callback: types.CallbackQuery) -> None:
 def show_counselor(callback: types.CallbackQuery, counselor_id: str) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     times = sql.get_counselor_appointment_times(counselor_id)
-    text = replies["counselors"][counselor_id]["name"] + "\n"
-    replies["counselors"][counselor_id]["info"]
+    text = (
+        replies["counselors"][counselor_id]["name"]
+        + "\n"
+        + replies["counselors"][counselor_id]["info"]
+    )
     _buttons = [
         types.InlineKeyboardButton(
             text=buttons["show_counselor"]["time"].format(time=str(time[0])[:5]),
@@ -131,6 +134,12 @@ def show_counselor(callback: types.CallbackQuery, counselor_id: str) -> None:
         )
         for time in times
     ]
+    _buttons.append(
+        types.InlineKeyboardButton(
+            text=buttons["show_counselor"]["back"]["text"],
+            callback_data=buttons["show_counselor"]["back"]["data"],
+        )
+    )
     keyboard.add(*_buttons)
     bot.edit_message_text(
         chat_id=callback.message.chat.id,
@@ -219,32 +228,26 @@ def show_seminar(callback: types.CallbackQuery, seminar_id: str) -> None:
 
 # write to seminar
 def write_to_seminar(callback: types.CallbackQuery, seminar_id: str) -> None:
-    print("writing")
-    sql.setup_seminar_for_user(callback.from_user.id, f"seminar::{seminar_id}")
-    print("writed")
+    sql.setup_seminar_for_user(callback.from_user.id, seminar_id)
     render_keyboard_message(
         callback, buttons["completed"], reply=buttons["completed"]["reply"]["success"]
     )
-    print("rendered")
 
 
 # my seminar
 def my_seminar(callback: types.CallbackQuery) -> None:
-    data = sql.get_user_seminar(callback.from_user.id)
+    seminar_id = sql.get_user_seminar(callback.from_user.id)
     text = ""
 
-    if not data:
+    if not seminar_id:
         status = False
         text = buttons["my_seminar"]["not_available"]["reply"]
     else:
-        seminar_id = next(iter(data))
-        if seminar_id == "NULL":
-            status = True
-            text = buttons["my_seminar"]["available"]["reply"].format(
-                seminar=replies["seminars"][seminar_id]["name"]
-            )
-        else:
-            status = False
+        status = True
+        text = buttons["my_seminar"]["available"]["reply"].format(
+            seminar=replies["seminars"][seminar_id]["name"],
+            info=replies["seminars"][seminar_id]["info"],
+        )
 
     render_keyboard_message(
         callback, buttons["my_seminar"]["available" if status else "not_available"], reply=text
@@ -373,12 +376,11 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
     elif callback.data.startswith("seminar::"):
         show_seminar(callback, callback.data.split("::")[1])
     elif callback.data.startswith("write_to_seminar::"):
-        print(f"data: {callback.data}")
         write_to_seminar(callback, callback.data.split("::")[1])
     elif callback.data == "my_seminar":
         my_seminar(callback)
     elif callback.data == "cancel_seminar":
-        cancel_seminar(callback, "None")
+        cancel_seminar(callback)
 
     elif callback.data == "question":
         write_question(callback)

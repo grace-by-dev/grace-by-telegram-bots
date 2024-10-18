@@ -3,7 +3,7 @@ menu:
   children:
     - text: "Расписание"
       data: "schedule_menu"
-    - text: "Душепопечение"
+    - text: "Запись к служителю"
       data: "appointment_menu"
     - text: "Семинары"
       data: "seminars_menu"
@@ -17,7 +17,7 @@ menu:
       data: "church_schedule"
 
 schedule_menu:
-  reply: "День конференции"
+  reply: "Выберите день конференции:"
   children:
     - text: "Четверг"
       data: "show_schedule::1"
@@ -44,7 +44,7 @@ appointment_menu:
       data: "menu"
 
 appointment:
-  reply: "Выберите служителя"
+  reply: "Выберите служителя:"
   children:
     - text: "Бейня Виктор Иосифович"
       data: "show_counselor::406103439"
@@ -78,8 +78,7 @@ show_counselor:
 my_appointment:
   available:
     reply: |
-      Вы записаны на беседу со служителем на {time}
-      {counselor_name}
+      Служитель {counselor_name} будет готов принять вас в {time}
       {counselor_info}
     children:
       - text: "Отменить запись"
@@ -128,14 +127,14 @@ show_seminar:
   reply: ""
   children:
     - text: "Записаться"
-      data: "write_seminar::"
+      data: "write_to_seminar::"
     - text: "Назад"
       data: "show_seminars"
 
 my_seminar:
   available:
     reply: |
-      Вы записаны на семинар "{name}"
+      Вы записаны на семинар "{seminar}"
       {info}
     children:
       - text: "Отменить запись"
@@ -149,16 +148,16 @@ my_seminar:
         data: "seminars_menu"
 
 question:
-    reply: "Задайте свой вопрос:"
-    children:
-      - text: "Отменить"
-        data: "cancel"
+  reply: "Задайте свой вопрос:"
+  children:
+    - text: "Отменить"
+      data: "cancel"
 
 feedback:
-    reply: "Напишите свой отзыв/свидетельство:"
-    children:
-      - text: "Отменить"
-        data: "cancel"
+  reply: "Напишите свой отзыв/свидетельство:"
+  children:
+    - text: "Отменить"
+      data: "cancel"
 
 social_networks:
   reply: "Мы в сети:"

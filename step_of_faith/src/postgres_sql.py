@@ -173,7 +173,7 @@ class PostgreSQL:
                     LIMIT 1""",
                 (user_id,),
             )
-            return next(iter(result))
+            return next(iter(result))[0]
 
     # set up seminar for user
     def setup_seminar_for_user(self, user_id: int, seminar: str | None) -> None:
