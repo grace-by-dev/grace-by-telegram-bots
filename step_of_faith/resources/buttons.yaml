@@ -1,0 +1,193 @@
+menu:
+  reply: "Меню:"
+  children:
+    - text: "Расписание"
+      data: "schedule_menu"
+    - text: "Запись к служителю"
+      data: "appointment_menu"
+    - text: "Семинары"
+      data: "seminars_menu"
+    - text: "Задать вопрос"
+      data: "question"
+    - text: "feedback"
+      data: "feedback"
+    - text: "Подпишись"
+      data: "social_networks"
+    - text: "Церковные служения"
+      data: "church_schedule"
+
+schedule_menu:
+  reply: "Выберите день конференции:"
+  children:
+    - text: "Четверг"
+      data: "show_schedule::1"
+    - text: "Пятница"
+      data: "show_schedule::2"
+    - text: "Назад"
+      data: "menu"
+
+schedule:
+  reply: "Расписание:"
+  children:
+    - text: "Назад"
+      data: "schedule_menu"
+  point: "\n🔸 {time}  {event}"
+
+appointment_menu:
+  reply: "Запись к служителю"
+  children:
+    - text: "Записаться"
+      data: "show_counselors"
+    - text: "Моя запись"
+      data: "my_appointment"
+    - text: "Назад"
+      data: "menu"
+
+appointment:
+  reply: "Выберите служителя:"
+  children:
+    - text: "Бейня Виктор Иосифович"
+      data: "show_counselor::406103439"
+    - text: "Кисляк Демид Георгиевич"
+      data: "show_counselor::449253812"
+    - text: "Кот Евгений Степанович"
+      data: "show_counselor::810100531"
+    - text: "Милькота Кирилл Михайлович"
+      data: "show_counselor::1074945011"
+    - text: "Трофимчик Владимир Иосифович"
+      data: "show_counselor::1479307097"
+    - text: "Цвор Вадим Сергеевич"
+      data: "show_counselor::95320854"
+    - text: "Ткачук Николай"
+      data: "show_counselor::78647976"
+    - text: "Горелик Светлана Васильевна"
+      data: "show_counselor::31659916"
+    - text: "Кисляк Анастасия Анатольевна"
+      data: "show_counselor::1852116823"
+    - text: "Татарыцкая Анна Николаевна"
+      data: "show_counselor::1681436113"
+    - text: "Назад"
+      data: "appointment_menu"
+
+show_counselor:
+  time: "🕓 {time}"
+  back:
+    text: "Назад"
+    data: "show_counselors"
+
+my_appointment:
+  available:
+    reply: |
+      Служитель {counselor_name} будет готов принять вас в {time}
+      {counselor_info}
+    children:
+      - text: "Отменить запись"
+        data: "cancel_appointment"
+      - text: "Назад"
+        data: "appointment_menu"
+  not_available:
+    reply: "Вы не записаны на беседу со служителем"
+    children:
+      - text: "Назад"
+        data: "appointment_menu"
+
+seminars_menu:
+  reply: "Семинары - это время когда..."
+  children:
+    - text: "Записаться"
+      data: "show_seminars"
+    - text: "Мой семинар"
+      data: "my_seminar"
+    - text: "Назад"
+      data: "menu"
+
+seminars:
+  reply: "Выберите семинар:"
+  children:
+    - text: "Команда прославления"
+      data: "seminar::1"
+    - text: "Домашка - маленькая церковь"
+      data: "seminar::2"
+    - text: "Христианство и медиа"
+      data: "seminar::3"
+    - text: "Сильная команда"
+      data: "seminar::4"
+    - text: "Апологетика в 21 веке"
+      data: "seminar::5"
+    - text: "Люблю не могу"
+      data: "seminar::6"
+    - text: "Финансы"
+      data: "seminar::7"
+    - text: "Современная евангелизация"
+      data: "seminar::8"
+    - text: "Назад"
+      data: "seminars_menu"
+
+show_seminar:
+  reply: ""
+  children:
+    - text: "Записаться"
+      data: "write_to_seminar::"
+    - text: "Назад"
+      data: "show_seminars"
+
+my_seminar:
+  available:
+    reply: |
+      Вы записаны на семинар "{seminar}"
+      {info}
+    children:
+      - text: "Отменить запись"
+        data: "cancel_seminar"
+      - text: "Назад"
+        data: "seminars_menu"
+  not_available:
+    reply: "Вы не записаны на семинар"
+    children:
+      - text: "Назад"
+        data: "seminars_menu"
+
+question:
+  reply: "Задайте свой вопрос:"
+  children:
+    - text: "Отменить"
+      data: "cancel"
+
+feedback:
+  reply: "Напишите свой отзыв/свидетельство:"
+  children:
+    - text: "Отменить"
+      data: "cancel"
+
+social_networks:
+  reply: "Мы в сети:"
+  children:
+    - text: "Telegram"
+      url: "https://t.me/stepoffaith"
+    - text: "Instagram"
+      url: "https://instagram.com/step.of.faithh"
+    - text: "Назад"
+      data: "menu"
+
+church_schedule:
+  reply: |
+    Служения:
+    🔸 понедельник (19:00) - молитвенное служение;
+    🔸 среда/четверг (19:00) - служение регионов;
+    🔸 пятница (19:00) - молодёжное служение;
+    🔸 воскресение (09:00 / 11:30 / 14:00) - общецерковное служение;
+  children:
+    - text: "Назад"
+      data: "menu"
+
+completed:
+  reply:
+    success: "Запись произведена успешно"
+    question: "Вопрос успешно записан."
+    feedback: "Отзыв успешно записан."
+    unsuccess: "Простите, но возможно кто-то уже забронировал это время\nПопробуйте ещё раз 🙏"
+    removed: "Запись успешно отменена"
+    cancel: "Успешно отменено"
+  children:
+    - text: "Меню"
+      data: "menu"
