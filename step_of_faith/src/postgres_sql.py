@@ -140,7 +140,7 @@ class PostgreSQL:
             and check_data[0][2] == user_id
         )
 
-    # get ucounselor appointment of user
+    # get counselor appointment of user
     def get_user_counselor_appointment(self, user_id: int) -> list:
         with get_connection().cursor() as cur:
             result = list(
@@ -163,6 +163,17 @@ class PostgreSQL:
             """,
                 (user_id,),
             )
+
+    # get seminar of user
+    def get_user_seminar(self, user_id: int) -> list:
+        with get_connection().cursor() as cur:
+            result = cur.execute(
+                """SELECT seminar FROM users
+                    WHERE user_id = %s
+                    LIMIT 1""",
+                (user_id,),
+            )
+            return next(iter(result))
 
     # set up seminar for user
     def setup_seminar_for_user(self, user_id: int, seminar: str | None) -> None:
