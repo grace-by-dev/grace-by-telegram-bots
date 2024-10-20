@@ -37,7 +37,7 @@ waiting_for_feedback = []
 
 
 # function for create keyboard
-def create_keyboard(button: object, columns: int) -> object:
+def create_keyboard(button: dict, columns: int) -> types.InlineKeyboardMarkup:
     keyboard = types.InlineKeyboardMarkup(row_width=columns)
     _buttons = [
         types.InlineKeyboardButton(
@@ -51,7 +51,7 @@ def create_keyboard(button: object, columns: int) -> object:
 
 # function edit keyboard message
 def edit_keyboard_message(
-    callback: types.CallbackQuery, button: object, reply: str | None, columns: int
+    callback: types.CallbackQuery, button: dict, reply: str | None = None, columns: int = 2
 ) -> None:
     bot.edit_message_text(
         chat_id=callback.message.chat.id,
@@ -63,7 +63,7 @@ def edit_keyboard_message(
 
 # function send keyboard message
 def send_keyboard_message(
-    message: types.Message, button: object, reply: str | None, columns: int
+    message: types.Message, button: dict, reply: str | None = None, columns: int = 2
 ) -> None:
     bot.send_message(
         message.chat.id,
@@ -72,50 +72,40 @@ def send_keyboard_message(
     )
 
 
-# function render message
-def render_keyboard_message(
-    data: types.CallbackQuery, button: object, reply: str | None = None, columns: int = 2
-) -> None:
-    arguments = (data, button, reply, columns)
-    (
-        send_keyboard_message(*arguments)
-        if type(data) is types.Message
-        else edit_keyboard_message(*arguments)
-    )
-
-
-def formation_text_of_schedule(schedule: object) -> str:
-    result = buttons["schedule"]["reply"]
+def formation_text_of_schedule(schedule: list) -> str:
+    result = buttons["schedule"]["reply"]["head"]
     for event in schedule:
-        result += buttons["schedule"]["point"].format(time=str(event[0])[:5], event=event[1])
+        result += buttons["schedule"]["reply"]["body"].format(
+            time=str(event[0])[:5], event=event[1]
+        )
     return result
 
 
 # function show menu
 def show_menu(callback: types.CallbackQuery) -> None:
-    render_keyboard_message(callback, buttons["menu"], columns=2)
+    edit_keyboard_message(callback, buttons["menu"], columns=2)
 
 
 # function for show days
 def schedule_menu(callback: types.CallbackQuery) -> None:
-    render_keyboard_message(callback, buttons["schedule_menu"])
+    edit_keyboard_message(callback, buttons["schedule_menu"])
 
 
 # function for show schedule
 def show_schedule(callback: types.CallbackQuery, day: int) -> None:
     schedule = sql.get_schedule(day)
     schedule_text = formation_text_of_schedule(schedule)
-    render_keyboard_message(callback, buttons["schedule"], reply=schedule_text)
+    edit_keyboard_message(callback, buttons["schedule"], reply=schedule_text)
 
 
 # appointment menu
 def appointment_menu(callback: types.CallbackQuery) -> None:
-    render_keyboard_message(callback, buttons["appointment_menu"])
+    edit_keyboard_message(callback, buttons["appointment_menu"])
 
 
 # make an counselor appointment
 def show_counselors(callback: types.CallbackQuery) -> None:
-    render_keyboard_message(callback, buttons["appointment"], columns=1)
+    edit_keyboard_message(callback, buttons["appointment"], columns=1)
 
 
 # make an counselor appointment
@@ -123,9 +113,9 @@ def show_counselor(callback: types.CallbackQuery, counselor_id: str) -> None:
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     times = sql.get_counselor_appointment_times(counselor_id)
     text = (
-        replies["counselors"][counselor_id]["name"]
+        buttons["counselors"][counselor_id]["name"]
         + "\n"
-        + replies["counselors"][counselor_id]["info"]
+        + buttons["counselors"][counselor_id]["info"]
     )
     _buttons = [
         types.InlineKeyboardButton(
@@ -160,7 +150,7 @@ def write_to_appointment(callback: types.CallbackQuery, time: str, counselor_id:
         if success
         else buttons["completed"]["reply"]["unsuccess"]
     )
-    render_keyboard_message(callback, buttons["completed"], reply=text)
+    edit_keyboard_message(callback, buttons["completed"], reply=text)
 
 
 # my_appointment
@@ -176,13 +166,13 @@ def my_appointment(callback: types.CallbackQuery) -> None:
     text = [
         buttons["my_appointment"]["available"]["reply"].format(
             time=str(time)[:5],
-            counselor_name=replies["counselors"][counselor_id]["name"],
-            counselor_info=replies["counselors"][counselor_id]["info"],
+            counselor_name=buttons["counselors"][counselor_id]["name"],
+            counselor_info=buttons["counselors"][counselor_id]["info"],
         )
         if status
         else buttons["my_appointment"]["not_available"]["reply"]
     ]
-    render_keyboard_message(
+    edit_keyboard_message(
         callback, buttons["my_appointment"]["available" if status else "not_available"], reply=text
     )
 
@@ -191,21 +181,21 @@ def my_appointment(callback: types.CallbackQuery) -> None:
 def cancel_appointment(callback: types.CallbackQuery) -> None:
     sql.delete_user_from_schedule_counselor_appointment(callback.from_user.id)
     text = buttons["completed"]["reply"]["removed"]
-    render_keyboard_message(callback, buttons["completed"], reply=text)
+    edit_keyboard_message(callback, buttons["completed"], reply=text)
 
 
 def seminars_menu(callback: types.CallbackQuery) -> None:
-    render_keyboard_message(callback, buttons["seminars_menu"])
+    edit_keyboard_message(callback, buttons["seminars_menu"])
 
 
 # function for show buttons of seminars
 def show_seminars(callback: types.CallbackQuery) -> None:
-    render_keyboard_message(callback, buttons["seminars"], columns=1)
+    edit_keyboard_message(callback, buttons["show_seminars"], columns=1)
 
 
 # function for show seminar
 def show_seminar(callback: types.CallbackQuery, seminar_id: str) -> None:
-    text = f'{replies['seminars'][seminar_id]['name']} \n{replies['seminars'][seminar_id]['info']}'
+    text = f'{buttons['seminars'][seminar_id]['name']} \n{buttons['seminars'][seminar_id]['info']}'
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     _buttons = [
         types.InlineKeyboardButton(
@@ -229,7 +219,7 @@ def show_seminar(callback: types.CallbackQuery, seminar_id: str) -> None:
 # write to seminar
 def write_to_seminar(callback: types.CallbackQuery, seminar_id: str) -> None:
     sql.setup_seminar_for_user(callback.from_user.id, seminar_id)
-    render_keyboard_message(
+    edit_keyboard_message(
         callback, buttons["completed"], reply=buttons["completed"]["reply"]["success"]
     )
 
@@ -245,11 +235,11 @@ def my_seminar(callback: types.CallbackQuery) -> None:
     else:
         status = True
         text = buttons["my_seminar"]["available"]["reply"].format(
-            seminar=replies["seminars"][seminar_id]["name"],
-            info=replies["seminars"][seminar_id]["info"],
+            seminar=buttons["seminars"][seminar_id]["name"],
+            info=buttons["seminars"][seminar_id]["info"],
         )
 
-    render_keyboard_message(
+    edit_keyboard_message(
         callback, buttons["my_seminar"]["available" if status else "not_available"], reply=text
     )
 
@@ -257,7 +247,7 @@ def my_seminar(callback: types.CallbackQuery) -> None:
 # cancel seminar
 def cancel_seminar(callback: types.CallbackQuery) -> None:
     sql.setup_seminar_for_user(callback.from_user.id, None)
-    render_keyboard_message(
+    edit_keyboard_message(
         callback, buttons["completed"], reply=buttons["completed"]["reply"]["removed"]
     )
 
@@ -266,24 +256,24 @@ def cancel_seminar(callback: types.CallbackQuery) -> None:
 def write_question(callback: types.CallbackQuery) -> None:
     if str(callback.from_user.id) not in waiting_for_question:
         waiting_for_question.append(str(callback.from_user.id))
-    render_keyboard_message(callback, buttons["question"])
+    edit_keyboard_message(callback, buttons["question"])
 
 
 # function for write feedback
 def write_feedback(callback: types.CallbackQuery) -> None:
     if str(callback.from_user.id) not in waiting_for_feedback:
         waiting_for_feedback.append(str(callback.from_user.id))
-    render_keyboard_message(callback, buttons["feedback"])
+    edit_keyboard_message(callback, buttons["feedback"])
 
 
 # function send social network
 def show_social_networks(callback: types.CallbackQuery) -> None:
-    render_keyboard_message(callback, buttons["social_networks"])
+    edit_keyboard_message(callback, buttons["social_networks"])
 
 
 # function send church schedule
 def show_church_schedule(callback: types.CallbackQuery) -> None:
-    render_keyboard_message(callback, buttons["church_schedule"])
+    edit_keyboard_message(callback, buttons["church_schedule"])
 
 
 # command cancel
@@ -300,7 +290,7 @@ def cancel(callback: types.CallbackQuery) -> None:
         status = True
 
     if status:
-        render_keyboard_message(
+        edit_keyboard_message(
             callback, buttons["completed"], reply=buttons["completed"]["reply"]["cancel"]
         )
 
@@ -316,7 +306,7 @@ def echo(message: types.Message) -> None:
 def answer_for_question(message: types.Message) -> None:
     waiting_for_question.remove(str(message.from_user.id))
     sql.write_message("question", message.text)
-    render_keyboard_message(
+    send_keyboard_message(
         message, buttons["completed"], reply=buttons["completed"]["reply"]["question"]
     )
 
@@ -326,7 +316,7 @@ def answer_for_question(message: types.Message) -> None:
 def answer_for_feedback(message: types.Message) -> None:
     waiting_for_feedback.remove(str(message.from_user.id))
     sql.write_message("feedback", message.text)
-    render_keyboard_message(
+    send_keyboard_message(
         message, buttons["completed"], reply=buttons["completed"]["reply"]["feedback"]
     )
 
@@ -338,7 +328,7 @@ def menu(message: types.Message) -> None:
         sql.add_to_database(message.from_user.id)
     current = sql.is_banned(message.from_user.id)
     if not current:
-        render_keyboard_message(message, replies["welcome"])
+        send_keyboard_message(message, buttons["welcome"])
     else:
         bot.send_message(message.from_user.id, replies["ban"]["banned"])
 

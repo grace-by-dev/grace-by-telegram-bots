@@ -96,9 +96,9 @@ class PostgreSQL:
             return list(
                 cur.execute(
                     """
-                    SELECT time FROM schedule_counselor_appointment
-                    WHERE counselor_id = %s AND user_id IS NULL
-                """,
+                        SELECT time FROM schedule_counselor_appointment
+                        WHERE counselor_id = %s AND user_id IS NULL
+                    """,
                     (counselor_id,),
                 )
             )
@@ -110,27 +110,28 @@ class PostgreSQL:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                UPDATE schedule_counselor_appointment
-                SET user_id = NULL
-                WHERE user_id = %s
-            """,
+                    UPDATE schedule_counselor_appointment
+                    SET user_id = NULL
+                    WHERE user_id = %s
+                """,
                 (user_id,),
             )
             cur.execute(
                 """
-                UPDATE schedule_counselor_appointment
-                SET user_id = %s WHERE counselor_id = %s
-                and time = %s and user_id IS NULL
-            """,
+                    UPDATE schedule_counselor_appointment
+                    SET user_id = %s WHERE counselor_id = %s
+                    and time = %s and user_id IS NULL
+                """,
                 (user_id, counselor_id, time),
             )
             conn.commit()
         with get_connection().cursor() as cur:
             check_data = list(
                 cur.execute(
-                    """SELECT * FROM schedule_counselor_appointment
-                    WHERE counselor_id = %s and time = %s and user_id = %s
-                    LIMIT 1""",
+                    """
+                        SELECT * FROM schedule_counselor_appointment
+                        WHERE counselor_id = %s and time = %s and user_id = %s
+                    """,
                     (counselor_id, time, user_id),
                 )
             )
@@ -145,9 +146,10 @@ class PostgreSQL:
         with get_connection().cursor() as cur:
             result = list(
                 cur.execute(
-                    """SELECT counselor_id, time FROM schedule_counselor_appointment
-                    WHERE user_id = %s
-                    LIMIT 1""",
+                    """
+                        SELECT counselor_id, time FROM schedule_counselor_appointment
+                        WHERE user_id = %s
+                    """,
                     (user_id,),
                 )
             )
@@ -158,9 +160,9 @@ class PostgreSQL:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                UPDATE schedule_counselor_appointment
-                SET user_id = NULL WHERE user_id = %s
-            """,
+                    UPDATE schedule_counselor_appointment
+                    SET user_id = NULL WHERE user_id = %s
+                """,
                 (user_id,),
             )
 
@@ -168,9 +170,10 @@ class PostgreSQL:
     def get_user_seminar(self, user_id: int) -> list:
         with get_connection().cursor() as cur:
             result = cur.execute(
-                """SELECT seminar FROM users
+                """
+                    SELECT seminar FROM users
                     WHERE user_id = %s
-                    LIMIT 1""",
+                """,
                 (user_id,),
             )
             return next(iter(result))[0]
