@@ -41,7 +41,6 @@ for data in [
     "^counseling$",
     "^seminars$",
     "^subscribe$",
-    "^counseling::options$",
 ]:
     filter_ = partial(filter_callback, pattern=data)
     processor = partial(edit_keyboard_message, **buttons[data], bot=bot)
@@ -63,10 +62,23 @@ def show_schedule_day(callback: types.CallbackQuery, pattern: str) -> None:
     )
 
 
+@callback_query_handler_x(func=partial(filter_callback, pattern="^counseling::options$"), bot=bot)
+def show_counselors(callback: types.CallbackQuery, pattern: str) -> None:
+    button = buttons[pattern]
+    counselors = sql.get_counselors()
+    children = []
+    for counselor_id, name in counselors:
+        children.append({"text": name, "data": f"{callback.data}::{counselor_id}"})
+    children.extend(button.children)
+    edit_keyboard_message(
+        callback, reply=button.reply, row_width=button.row_width, children=children, bot=bot
+    )
+
+
 @callback_query_handler_x(
-    func=partial(filter_callback, pattern="^counseling::options::detailed::\\d*$"), bot=bot
+    func=partial(filter_callback, pattern="^counseling::options::\\d*$"), bot=bot
 )
-def show_counselor(callback: types.CallbackQuery, pattern: str) -> None:
+def show_particular_counselor(callback: types.CallbackQuery, pattern: str) -> None:
     *_, counselor_id = callback.data.rsplit("::", maxsplit=1)
     counselor_id = int(counselor_id)
     button = buttons[pattern]
@@ -86,9 +98,7 @@ def show_counselor(callback: types.CallbackQuery, pattern: str) -> None:
 
 
 @callback_query_handler_x(
-    func=partial(
-        filter_callback, pattern="^counseling::options::detailed::\\d*::\\d{1,2}:\\d{1,2}$"
-    ),
+    func=partial(filter_callback, pattern="^counseling::options::\\d*::\\d{1,2}:\\d{1,2}$"),
     bot=bot,
 )
 def book_counseling(callback: types.CallbackQuery, pattern: str) -> None:
@@ -127,20 +137,9 @@ def cancel_counseling(callback: types.CallbackQuery, pattern: str) -> None:
     edit_keyboard_message(callback, **button, bot=bot)
 
 
-# # delete counselor appointment
-# def cancel_appointment(callback: types.CallbackQuery) -> None:
-#     sql.delete_user_from_schedule_counselor_appointment(callback.from_user.id)
-#     text = buttons["completed"]["reply"]["removed"]
-#     edit_keyboard_message(callback, buttons["completed"], reply=text)
-
-
-# def seminars_menu(callback: types.CallbackQuery) -> None:
-#     edit_keyboard_message(callback, buttons["seminars_menu"])
-
-
-# # function for show buttons of seminars
-# def show_seminars(callback: types.CallbackQuery) -> None:
-#     edit_keyboard_message(callback, buttons["show_seminars"], columns=1)
+# function for show buttons of seminars
+def show_seminars(callback: types.CallbackQuery) -> None:
+    edit_keyboard_message(callback, buttons["show_seminars"], columns=1)
 
 
 # # function for show seminar
@@ -331,40 +330,6 @@ def menu(message: types.Message) -> None:
 #         show_social_networks(callback)
 #     elif callback.data == "church_schedule":
 #         show_church_schedule(callback)
-
-
-# command ban
-@bot.message_handler(regexp="^/ban ")
-def ban(message: types.Message) -> None:
-    if not sql.is_banned(message.from_user.id):
-        if sql.is_admin(message.from_user.id):
-            username = user_utils.select_username_from_text(message.text[5:])
-            completed = sql.change_ban_status(username, 1)
-            if completed:
-                bot.send_message(
-                    message.from_user.id, replies["ban"]["success"].format(username=username)
-                )
-            else:
-                bot.send_message(message.from_user.id, replies["ban"]["failure"])
-    else:
-        bot.send_message(message.from_user.id, replies["ban"]["banned"])
-
-
-# command ban
-@bot.message_handler(regexp="^/unban ")
-def unban(message: types.Message) -> None:
-    if not sql.is_banned(message.from_user.id):
-        if sql.is_admin(message.from_user.id):
-            username = user_utils.select_username_from_text(message.text[7:])
-            completed = sql.change_ban_status(username, 0)
-            if completed:
-                bot.send_message(
-                    message.from_user.id, replies["unban"]["success"].format(username=username)
-                )
-            else:
-                bot.send_message(message.from_user.id, replies["unban"]["failure"])
-    else:
-        bot.send_message(message.from_user.id, replies["ban"]["banned"])
 
 
 # RUN BOT

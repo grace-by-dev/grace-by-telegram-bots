@@ -61,30 +61,10 @@
   reply: "Выберите служителя:"
   row_width: 2
   children:
-    - text: "Бейня Виктор Иосифович"
-      data: "counseling::options::detailed::1"
-    - text: "Кисляк Демид Георгиевич"
-      data: "counseling::options::detailed::2"
-    - text: "Кот Евгений Степанович"
-      data: "counseling::options::detailed::3"
-    - text: "Милькота Кирилл Михайлович"
-      data: "counseling::options::detailed::4"
-    - text: "Трофимчик Владимир Иосифович"
-      data: "counseling::options::detailed::5"
-    - text: "Цвор Вадим Сергеевич"
-      data: "counseling::options::detailed::6"
-    - text: "Ткачук Николай"
-      data: "counseling::options::detailed::7"
-    - text: "Горелик Светлана Васильевна"
-      data: "counseling::options::detailed::8"
-    - text: "Кисляк Анастасия Анатольевна"
-      data: "counseling::options::detailed::9"
-    - text: "Татарыцкая Анна Николаевна"
-      data: "counseling::options::detailed::10"
     - text: "Назад"
       data: "counseling"
 
-"^counseling::options::detailed::\\d*$":
+"^counseling::options::\\d*$":
   reply: |
     *{name}*
     {n} свободных окошек
@@ -95,7 +75,7 @@
     - text: "Назад"
       data: "counseling::options"
 
-"^counseling::options::detailed::\\d*::\\d{1,2}:\\d{1,2}$":
+"^counseling::options::\\d*::\\d{1,2}:\\d{1,2}$":
   success:
     reply: "Запись произведена успешно"
     row_width: 1
