@@ -1,4 +1,3 @@
-# step of faith telegram bot
 from functools import partial
 import os
 
@@ -137,140 +136,82 @@ def cancel_counseling(callback: types.CallbackQuery, pattern: str) -> None:
     edit_keyboard_message(callback, **button, bot=bot)
 
 
-# function for show buttons of seminars
-def show_seminars(callback: types.CallbackQuery) -> None:
-    edit_keyboard_message(callback, buttons["show_seminars"], columns=1)
+@callback_query_handler_x(func=partial(filter_callback, pattern="^seminars::options$"), bot=bot)
+def show_seminars(callback: types.CallbackQuery, pattern: str) -> None:
+    button = buttons[pattern]
+    seminars = sql.get_seminars()
+    children = []
+    for seminar_id, title in seminars:
+        children.append({"text": title, "data": f"{callback.data}::{seminar_id}"})
+    children.extend(button.children)
+    edit_keyboard_message(
+        callback, reply=button.reply, row_width=button.row_width, children=children, bot=bot
+    )
 
 
-# # function for show seminar
-# def show_seminar(callback: types.CallbackQuery, seminar_id: str) -> None:
-# text = f'{buttons['seminars'][seminar_id]['name']} \n{buttons.seminars[seminar_id]['info']}'
-#     keyboard = types.InlineKeyboardMarkup(row_width=2)
-#     _buttons = [
-#         types.InlineKeyboardButton(
-#             text=buttons["show_seminar"]["children"][0]["text"],
-#             callback_data=f"{buttons['show_seminar']['children'][0]['data']}{seminar_id}",
-#         ),
-#         types.InlineKeyboardButton(
-#             text=buttons["show_seminar"]["children"][1]["text"],
-#             callback_data=buttons["show_seminar"]["children"][1]["data"],
-#         ),
-#     ]
-#     keyboard.add(*_buttons)
-#     bot.edit_message_text(
-#         chat_id=callback.message.chat.id,
-#         message_id=callback.message.id,
-#         text=text,
-#         reply_markup=keyboard,
-#     )
+@callback_query_handler_x(
+    func=partial(filter_callback, pattern="^seminars::options::\\d*$"), bot=bot
+)
+def show_particular_seminar(callback: types.CallbackQuery, pattern: str) -> None:
+    *_, seminar_id = callback.data.rsplit("::", maxsplit=1)
+    seminar_id = int(seminar_id)
+    button = buttons[pattern]
+    enroll, back = button.children
+    title, description = sql.get_seminar_info(seminar_id)
+    reply = button.reply.format(title=title, description=description)
+    children = [{"text": enroll.text, "data": enroll.data.format(seminar_id=seminar_id)}, back]
+    edit_keyboard_message(
+        callback, reply=reply, row_width=button.row_width, children=children, bot=bot
+    )
 
 
-# # write to seminar
-# def write_to_seminar(callback: types.CallbackQuery, seminar_id: str) -> None:
-#     sql.setup_seminar_for_user(callback.from_user.id, seminar_id)
-#     edit_keyboard_message(
-#         callback, buttons["completed"], reply=buttons["completed"]["reply"]["success"]
-#     )
+@callback_query_handler_x(
+    func=partial(filter_callback, pattern="^seminars::options::\\d*::enroll$"), bot=bot
+)
+def choose_seminar_number(callback: types.CallbackQuery, pattern: str) -> None:
+    *_, seminar_id, _ = callback.data.rsplit("::", maxsplit=2)
+    button = buttons[pattern]
+    first, second, back = button.children
+    title, description = sql.get_seminar_info(seminar_id)
+    reply = button.reply.format(title=title, description=description)
+    children = [
+        {"text": first.text, "data": first.data.format(seminar_id=seminar_id)},
+        {"text": second.text, "data": second.data.format(seminar_id=seminar_id)},
+        back,
+    ]
+    edit_keyboard_message(
+        callback, reply=reply, row_width=button.row_width, children=children, bot=bot
+    )
 
 
-# # my seminar
-# def my_seminar(callback: types.CallbackQuery) -> None:
-#     seminar_id = sql.get_user_seminar(callback.from_user.id)
-#     text = ""
-
-#     if not seminar_id:
-#         status = False
-#         text = buttons["my_seminar"]["not_available"]["reply"]
-#     else:
-#         status = True
-#         text = buttons["my_seminar"]["available"]["reply"].format(
-#             seminar=buttons["seminars"][seminar_id]["name"],
-#             info=buttons["seminars"][seminar_id]["info"],
-#         )
-
-#     edit_keyboard_message(
-#         callback, buttons["my_seminar"]["available" if status else "not_available"], reply=text
-#     )
+@callback_query_handler_x(
+    func=partial(filter_callback, pattern="^seminars::options::\\d*::enroll::\\d$"), bot=bot
+)
+def enroll_for_seminar(callback: types.CallbackQuery, pattern: str) -> None:
+    *_, seminar_id, _, seminar_number = callback.data.rsplit("::", maxsplit=3)
+    button = buttons[pattern]
+    sql.enroll_for_seminar(
+        seminar_id=seminar_id, user_id=callback.message.chat.id, seminar_number=seminar_number
+    )
+    edit_keyboard_message(callback, **button, bot=bot)
 
 
-# # cancel seminar
-# def cancel_seminar(callback: types.CallbackQuery) -> None:
-#     sql.setup_seminar_for_user(callback.from_user.id, None)
-#     edit_keyboard_message(
-#         callback, buttons["completed"], reply=buttons["completed"]["reply"]["removed"]
-#     )
+@callback_query_handler_x(func=partial(filter_callback, pattern="^seminars::my$"), bot=bot)
+def show_my_seminars(callback: types.CallbackQuery, pattern: str) -> None:
+    button = buttons[pattern]
+    template = button.reply.seminar_template
+    (title1, desc1), (title2, desc2) = sql.get_my_seminars(callback.message.chat.id)
+    seminar1 = template.format(title=title1, description=desc1) if title1 else button.reply.missing
+    seminar2 = template.format(title=title2, description=desc2) if title2 else button.reply.missing
+    reply = button.reply.template.format(seminar1=seminar1, seminar2=seminar2)
+    cancel, back = button.children
+    children = [cancel, back] if title1 or title2 else [back]
+    edit_keyboard_message(
+        callback, reply=reply, children=children, row_width=button.row_width, bot=bot
+    )
 
 
-# # function for write question
-# def write_question(callback: types.CallbackQuery) -> None:
-#     if str(callback.from_user.id) not in waiting_for_question:
-#         waiting_for_question.append(str(callback.from_user.id))
-#     edit_keyboard_message(callback, buttons["question"])
-
-
-# # function for write feedback
-# def write_feedback(callback: types.CallbackQuery) -> None:
-#     if str(callback.from_user.id) not in waiting_for_feedback:
-#         waiting_for_feedback.append(str(callback.from_user.id))
-#     edit_keyboard_message(callback, buttons["feedback"])
-
-
-# # function send social network
-# def show_social_networks(callback: types.CallbackQuery) -> None:
-#     edit_keyboard_message(callback, buttons["social_networks"])
-
-
-# # function send church schedule
-# def show_church_schedule(callback: types.CallbackQuery) -> None:
-#     edit_keyboard_message(callback, buttons["church_schedule"])
-
-
-# # command cancel
-# def cancel(callback: types.CallbackQuery) -> None:
-#     user_id = callback.from_user.id
-#     status = False
-
-#     if str(user_id) in waiting_for_question:
-#         waiting_for_question.remove(str(user_id))
-#         status = True
-
-#     elif str(user_id) in waiting_for_feedback:
-#         waiting_for_feedback.remove(str(user_id))
-#         status = True
-
-#     if status:
-#         edit_keyboard_message(
-#             callback, buttons["completed"], reply=buttons["completed"]["reply"]["cancel"]
-#         )
-
-
-# # echo command
-# @bot.message_handler(regexp="^echo ")
-# def echo(message: types.Message) -> None:
-#     bot.send_message(message.from_user.id, message.text[5:])
-
-
-# # check for answer
-# @bot.message_handler(func=lambda message: str(message.from_user.id) in waiting_for_question)
-# def answer_for_question(message: types.Message) -> None:
-#     waiting_for_question.remove(str(message.from_user.id))
-#     sql.write_message("question", message.text)
-#     send_keyboard_message(
-#         message, buttons["completed"], reply=buttons["completed"]["reply"]["question"]
-#     )
-
-
-# # check for feedback
-# @bot.message_handler(func=lambda message: str(message.from_user.id) in waiting_for_feedback)
-# def answer_for_feedback(message: types.Message) -> None:
-#     waiting_for_feedback.remove(str(message.from_user.id))
-#     sql.write_message("feedback", message.text)
-#     send_keyboard_message(
-#         message, buttons["completed"], reply=buttons["completed"]["reply"]["feedback"]
-#     )
-
-
-@bot.message_handler(commands=["start", "help", "menu"])
+@bot.message_handler(commands=["start"])
 def menu(message: types.Message) -> None:
     if not sql.check_user_id(message.from_user.id):
         sql.add_to_database(message.from_user.id)
@@ -281,58 +222,6 @@ def menu(message: types.Message) -> None:
         bot.send_message(message.from_user.id, replies["ban"]["banned"])
 
 
-# # check callback data
-# @bot.callback_query_handler(func=lambda callback: callback.data)
-# def check_callback_data(callback: types.CallbackQuery) -> None:
-#     if callback.data == "menu":
-#         show_menu(callback)
-
-#     elif callback.data == "schedule_menu":
-#         schedule_menu(callback)
-#     elif callback.data.startswith("show_schedule::"):
-#         show_schedule(callback, int(callback.data.split("::")[1]))
-
-#     elif callback.data == "appointment_menu":
-#         appointment_menu(callback)
-#     elif callback.data == "show_counselors":
-#         show_counselors(callback)
-#     elif callback.data.startswith("show_counselor::"):
-#         counselor_id = callback.data.split("::")[1]
-#         show_counselor(callback, counselor_id)
-#     elif callback.data.startswith("write_appointment::"):
-#         time, counselor_id = list(callback.data.split("::")[1:])
-#         write_to_appointment(callback, time, counselor_id)
-#     elif callback.data == "my_appointment":
-#         my_appointment(callback)
-#     elif callback.data == "cancel_appointment":
-#         cancel_appointment(callback)
-
-#     elif callback.data == "seminars_menu":
-#         seminars_menu(callback)
-#     elif callback.data == "show_seminars":
-#         show_seminars(callback)
-#     elif callback.data.startswith("seminar::"):
-#         show_seminar(callback, callback.data.split("::")[1])
-#     elif callback.data.startswith("write_to_seminar::"):
-#         write_to_seminar(callback, callback.data.split("::")[1])
-#     elif callback.data == "my_seminar":
-#         my_seminar(callback)
-#     elif callback.data == "cancel_seminar":
-#         cancel_seminar(callback)
-
-#     elif callback.data == "question":
-#         write_question(callback)
-#     elif callback.data == "feedback":
-#         write_feedback(callback)
-#     elif callback.data == "cancel":
-#         cancel(callback)
-#     elif callback.data == "social_networks":
-#         show_social_networks(callback)
-#     elif callback.data == "church_schedule":
-#         show_church_schedule(callback)
-
-
-# RUN BOT
 if __name__ == "__main__":
     logger.info("START BOT...")
     bot.infinity_polling()

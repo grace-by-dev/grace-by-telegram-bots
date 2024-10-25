@@ -22,27 +22,35 @@ class PostgreSQL:
     def add_to_database(self, user_id: int) -> None:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO users (user_id) VALUES (%s)",
-                (user_id,),
+                """
+                INSERT INTO users VALUES (%(user_id)s);
+                """,
+                {"user_id": user_id},
+            )
+            cur.execute(
+                """
+                INSERT INTO seminar_enrollement VALUES 
+                (NULL, %(user_id)s, 1),
+                (NULL, %(user_id)s, 2);
+                """,
+                {"user_id": user_id},
             )
             conn.commit()
 
     def check_user_id(self, user_id: int) -> bool:
         with get_connection().cursor() as cur:
-            data = cur.execute(
-                "SELECT user_id FROM users WHERE user_id = %s", (user_id,)
-            ).fetchone()
+            data = cur.execute("SELECT id FROM users WHERE id = %s", (user_id,)).fetchone()
         return data is not None
 
     def is_banned(self, user_id: int) -> bool:
         with get_connection().cursor() as cur:
-            data = cur.execute("SELECT ban FROM users WHERE user_id = %s", (user_id,)).fetchone()
+            data = cur.execute("SELECT ban FROM users WHERE id = %s", (user_id,)).fetchone()
         if data is not None:
             return data[0]
 
     def is_admin(self, user_id: int) -> bool:
         with get_connection().cursor() as cur:
-            data = cur.execute("SELECT admin FROM users WHERE user_id = %s", (user_id,)).fetchone()
+            data = cur.execute("SELECT admin FROM users WHERE id = %s", (user_id,)).fetchone()
         if data is not None:
             return data[0]
 
@@ -117,31 +125,60 @@ class PostgreSQL:
                 (user_id,),
             ).fetchone()
 
-    # delete_user_from_schedule_counselor_appointment
     def cancel_counseling(self, user_id: int) -> None:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                    UPDATE counseling
-                    SET user_id = NULL WHERE user_id = %s
+                UPDATE counseling
+                SET user_id = NULL WHERE user_id = %s
                 """,
                 (user_id,),
             )
             conn.commit()
 
-    # get seminar of user
-    def get_user_seminar(self, user_id: int) -> list:
+    def get_seminars(self) -> list:
         with get_connection().cursor() as cur:
-            result = cur.execute(
+            return cur.execute(
                 """
-                    SELECT seminar FROM users
-                    WHERE user_id = %s
+                SELECT id, title 
+                FROM seminars
+                ORDER BY id;
+                """
+            ).fetchall()
+
+    def get_seminar_info(self, seminar_id: int) -> list:
+        with get_connection().cursor() as cur:
+            return cur.execute(
+                """
+                SELECT title, description 
+                FROM seminars
+                WHERE id = %s;
+                """,
+                (seminar_id,),
+            ).fetchone()
+
+    def enroll_for_seminar(self, seminar_id: int, user_id: int, seminar_number: int) -> None:
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE seminar_enrollement
+                SET seminar_id = %s
+                WHERE user_id = %s and seminar_number = %s
+                """,
+                (seminar_id, user_id, seminar_number),
+            )
+            conn.commit()
+
+    def get_my_seminars(self, user_id: int) -> list:
+        with get_connection().cursor() as cur:
+            return cur.execute(
+                """
+                SELECT title, description
+                FROM seminar_enrollement enrollement
+                LEFT JOIN seminars
+                    ON enrollement.seminar_id = seminars.id
+                WHERE user_id = %s
+                ORDER BY seminar_number; 
                 """,
                 (user_id,),
-            )
-            return next(iter(result))[0]
-
-    # set up seminar for user
-    def setup_seminar_for_user(self, user_id: int, seminar: str | None) -> None:
-        with get_connection() as conn, conn.cursor() as cur:
-            cur.execute("UPDATE users SET seminar = %s WHERE user_id = %s", (seminar, user_id))
+            ).fetchall()
