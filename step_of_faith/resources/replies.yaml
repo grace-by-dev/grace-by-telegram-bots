@@ -1,3 +1,9 @@
+welcome:
+  reply: "Welcome to Step of Faith!"
+  row_width: 2
+  children:
+    - text: "Меню"
+      data: "menu"
 ban:
   success: "Пользователь {username} успешно заблокирован."
   failure: "Не удалось заблокировать пользователя."

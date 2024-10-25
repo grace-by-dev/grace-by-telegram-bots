@@ -6,7 +6,7 @@ select = [
     "E", "W", "F", "I", "B", "C4", "UP", "N", "ANN001", "ANN2", "S", "BLE", "A", "ICN",
     "PIE", "SIM", "ERA", "PD", "PLW", "PERF", "RUF", "ARG"
 ]
-ignore = ["W291", "PERF203", "ARG", "ANN", "S311",]
+ignore = ["W291", "PERF203", "ARG", "ANN", "S311","ERA001"]
 
 [tool.ruff.lint.isort]
 lines-after-imports = 2

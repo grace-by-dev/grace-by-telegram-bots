@@ -1,231 +1,54 @@
-welcome:
-  reply: "Welcome to Step of Faith!"
-  children:
-    - text: "Меню"
-      data: "menu"
-
-menu:
+"^menu$":
   reply: "Меню:"
+  row_width: 2
   children:
     - text: "Расписание"
-      data: "schedule_menu"
-    - text: "Запись к служителю"
-      data: "appointment_menu"
+      data: "schedule"
+    - text: "Душепопечение"
+      data: "counseling"
     - text: "Семинары"
-      data: "seminars_menu"
-    - text: "Задать вопрос"
-      data: "question"
-    - text: "feedback"
-      data: "feedback"
+      data: "seminars"
     - text: "Подпишись"
-      data: "social_networks"
+      data: "subscribe"
     - text: "Церковные служения"
       data: "church_schedule"
 
-schedule_menu:
+"^schedule$":
   reply: "Выберите день конференции:"
+  row_width: 2
   children:
     - text: "Четверг"
-      data: "show_schedule::1"
+      data: "schedule::day::1"
     - text: "Пятница"
-      data: "show_schedule::2"
+      data: "schedule::day::2"
     - text: "Назад"
       data: "menu"
 
-schedule:
-  reply:
-    head: "Расписание:"
-    body: "\n🔸 {time}  {event}"
-  children:
-    - text: "Назад"
-      data: "schedule_menu"
-
-appointment_menu:
+"^counseling$":
   reply: "Запись к служителю"
+  row_width: 2
   children:
     - text: "Записаться"
-      data: "show_counselors"
+      data: "counseling::options"
     - text: "Моя запись"
-      data: "my_appointment"
+      data: "counseling::my"
     - text: "Назад"
       data: "menu"
 
-appointment:
-  reply: "Выберите служителя:"
-  children:
-    - text: "Бейня Виктор Иосифович"
-      data: "show_counselor::406103439"
-    - text: "Кисляк Демид Георгиевич"
-      data: "show_counselor::449253812"
-    - text: "Кот Евгений Степанович"
-      data: "show_counselor::810100531"
-    - text: "Милькота Кирилл Михайлович"
-      data: "show_counselor::1074945011"
-    - text: "Трофимчик Владимир Иосифович"
-      data: "show_counselor::1479307097"
-    - text: "Цвор Вадим Сергеевич"
-      data: "show_counselor::95320854"
-    - text: "Ткачук Николай"
-      data: "show_counselor::78647976"
-    - text: "Горелик Светлана Васильевна"
-      data: "show_counselor::31659916"
-    - text: "Кисляк Анастасия Анатольевна"
-      data: "show_counselor::1852116823"
-    - text: "Татарыцкая Анна Николаевна"
-      data: "show_counselor::1681436113"
-    - text: "Назад"
-      data: "appointment_menu"
-
-show_counselor:
-  time: "🕓 {time}"
-  back:
-    text: "Назад"
-    data: "show_counselors"
-
-counselors:
-  '406103439':
-    name: "Бейня Виктор Иосифович"
-    info: "info 1"
-  '449253812':
-    name: "Кисляк Демид Георгиевич"
-    info: "info 2"
-  '810100531':
-    name: "Кот Евгений Степанович"
-    info: "info 3"
-  '1074945011':
-    name: "Милькота Кирилл Михайлович"
-    info: "info 4"
-  '1479307097':
-    name: "Трофимчик Владимир Иосифович"
-    info: "info 5"
-  '95320854':
-    name: "Цвор Вадим Сергеевич"
-    info: "info 6"
-  '78647976':
-    name: "Ткачук Николай"
-    info: "info 7"
-  '31659916':
-    name: "Горелик Светлана Васильевна (только для девушек)"
-    info: "info 8"
-  '1852116823':
-    name: "Кисляк Анастасия Анатольевна (только для девушек)"
-    info: "info 9"
-  '1681436113':
-    name: "Татарыцкая Анна Николаевна (только для девушек)"
-    info: "info 10"
-
-my_appointment:
-  available:
-    reply: |
-      Служитель {counselor_name} будет готов принять вас в {time}
-      {counselor_info}
-    children:
-      - text: "Отменить запись"
-        data: "cancel_appointment"
-      - text: "Назад"
-        data: "appointment_menu"
-  not_available:
-    reply: "Вы не записаны на беседу со служителем"
-    children:
-      - text: "Назад"
-        data: "appointment_menu"
-
-seminars_menu:
+"^seminars$":
   reply: "Семинары - это время когда..."
+  row_width: 2
   children:
     - text: "Записаться"
-      data: "show_seminars"
+      data: "seminars::options"
     - text: "Мой семинар"
-      data: "my_seminar"
+      data: "seminars::my"
     - text: "Назад"
       data: "menu"
 
-show_seminars:
-  reply: "Выберите семинар:"
-  children:
-    - text: "Команда прославления"
-      data: "seminar::1"
-    - text: "Домашка - маленькая церковь"
-      data: "seminar::2"
-    - text: "Христианство и медиа"
-      data: "seminar::3"
-    - text: "Сильная команда"
-      data: "seminar::4"
-    - text: "Апологетика в 21 веке"
-      data: "seminar::5"
-    - text: "Люблю не могу"
-      data: "seminar::6"
-    - text: "Финансы"
-      data: "seminar::7"
-    - text: "Современная евангелизация"
-      data: "seminar::8"
-    - text: "Назад"
-      data: "seminars_menu"
-
-show_seminar:
-  reply: ""
-  children:
-    - text: "Записаться"
-      data: "write_to_seminar::"
-    - text: "Назад"
-      data: "show_seminars"
-
-seminars:
-  '1':
-    name: "Команда прославления"
-    info: "info"
-  '2':
-    name: "Домашка - маленькая церковь"
-    info: "info"
-  '3':
-    name: "Христианство и медиа"
-    info: "info"
-  '4':
-    name: "Сильная команда"
-    info: "info"
-  '5':
-    name: "Апологетика в 21 веке"
-    info: "info"
-  '6':
-    name: "Люблю не могу"
-    info: "info"
-  '7':
-    name: "Финансы"
-    info: "info"
-  '8':
-    name: "Современная евангелизация"
-    info: "info"
-
-my_seminar:
-  available:
-    reply: |
-      Вы записаны на семинар "{seminar}"
-      {info}
-    children:
-      - text: "Отменить запись"
-        data: "cancel_seminar"
-      - text: "Назад"
-        data: "seminars_menu"
-  not_available:
-    reply: "Вы не записаны на семинар"
-    children:
-      - text: "Назад"
-        data: "seminars_menu"
-
-question:
-  reply: "Задайте свой вопрос:"
-  children:
-    - text: "Отменить"
-      data: "cancel"
-
-feedback:
-  reply: "Напишите свой отзыв/свидетельство:"
-  children:
-    - text: "Отменить"
-      data: "cancel"
-
-social_networks:
+"^subscribe$":
   reply: "Мы в сети:"
+  row_width: 2
   children:
     - text: "Telegram"
       url: "https://t.me/stepoffaith"
@@ -234,25 +57,204 @@ social_networks:
     - text: "Назад"
       data: "menu"
 
-church_schedule:
+"^counseling::options$":
+  reply: "Выберите служителя:"
+  row_width: 2
+  children:
+    - text: "Бейня Виктор Иосифович"
+      data: "counseling::options::detailed::1"
+    - text: "Кисляк Демид Георгиевич"
+      data: "counseling::options::detailed::2"
+    - text: "Кот Евгений Степанович"
+      data: "counseling::options::detailed::3"
+    - text: "Милькота Кирилл Михайлович"
+      data: "counseling::options::detailed::4"
+    - text: "Трофимчик Владимир Иосифович"
+      data: "counseling::options::detailed::5"
+    - text: "Цвор Вадим Сергеевич"
+      data: "counseling::options::detailed::6"
+    - text: "Ткачук Николай"
+      data: "counseling::options::detailed::7"
+    - text: "Горелик Светлана Васильевна"
+      data: "counseling::options::detailed::8"
+    - text: "Кисляк Анастасия Анатольевна"
+      data: "counseling::options::detailed::9"
+    - text: "Татарыцкая Анна Николаевна"
+      data: "counseling::options::detailed::10"
+    - text: "Назад"
+      data: "counseling"
+
+"^counseling::options::detailed::\\d*$":
   reply: |
-    Служения:
-    🔸 понедельник (19:00) - молитвенное служение;
-    🔸 среда/четверг (19:00) - служение регионов;
-    🔸 пятница (19:00) - молодёжное служение;
-    🔸 воскресение (09:00 / 11:30 / 14:00) - общецерковное служение;
+    *{name}*
+    {n} свободных окошек
+    {description}
+  row_width: 1
+  child_template: "🕓 {time}"
   children:
     - text: "Назад"
+      data: "counseling::options"
+
+"^counseling::options::detailed::\\d*::\\d{1,2}:\\d{1,2}$":
+  success:
+    reply: "Запись произведена успешно"
+    row_width: 1
+    children:
+      - text: "В меню"
+        data: "menu"
+  failure: 
+    reply: "Кто-то тебя опередил, попробуй другое время"
+    row_width: 2
+    children:
+      - text: Список служителей
+        data: "counseling::options"
+      - text: "В меню"
+        data: "menu"
+
+"^schedule::day::\\d*$":
+  reply:
+    header: "Расписание:"
+    row_template: "\n🔸 {time}  {event}"
+  row_width: 1
+  children:
+    - text: "Назад"
+      data: "schedule"
+
+"^counseling::my$":
+  exists:
+    reply: |
+      {name} примет вас в {time}
+      {description}
+    row_width: 2
+    children:
+      - text: "Отменить запись"
+        data: "counseling::my::cancel"
+      - text: "Назад"
+        data: "counseling"
+  missing:
+    reply: "Вы не записаны на душепопечение"
+    row_width: 1
+    children:
+      - text: "Назад"
+        data: "counseling"
+
+"^counseling::my::cancel$":
+  reply: "Запись отменена"
+  row_width: 1
+  children:
+    - text: "В меню"
       data: "menu"
 
-completed:
-  reply:
-    success: "Запись произведена успешно"
-    question: "Вопрос успешно записан."
-    feedback: "Отзыв успешно записан."
-    unsuccess: "Простите, но возможно кто-то уже забронировал это время\nПопробуйте ещё раз 🙏"
-    removed: "Запись успешно отменена"
-    cancel: "Успешно отменено"
-  children:
-    - text: "Меню"
-      data: "menu"
+
+# seminars:
+#   reply: "Семинары - это время когда..."
+#   children:
+#     - text: "Записаться"
+#       data: "show_seminars"
+#     - text: "Мой семинар"
+#       data: "my_seminar"
+#     - text: "Назад"
+#       data: "menu"
+
+# show_seminars:
+#   reply: "Выберите семинар:"
+#   children:
+#     - text: "Команда прославления"
+#       data: "seminar::1"
+#     - text: "Домашка - маленькая церковь"
+#       data: "seminar::2"
+#     - text: "Христианство и медиа"
+#       data: "seminar::3"
+#     - text: "Сильная команда"
+#       data: "seminar::4"
+#     - text: "Апологетика в 21 веке"
+#       data: "seminar::5"
+#     - text: "Люблю не могу"
+#       data: "seminar::6"
+#     - text: "Финансы"
+#       data: "seminar::7"
+#     - text: "Современная евангелизация"
+#       data: "seminar::8"
+#     - text: "Назад"
+#       data: "seminars"
+
+
+
+# seminars:
+#   '1':
+#     name: "Команда прославления"
+#     info: "info"
+#   '2':
+#     name: "Домашка - маленькая церковь"
+#     info: "info"
+#   '3':
+#     name: "Христианство и медиа"
+#     info: "info"
+#   '4':
+#     name: "Сильная команда"
+#     info: "info"
+#   '5':
+#     name: "Апологетика в 21 веке"
+#     info: "info"
+#   '6':
+#     name: "Люблю не могу"
+#     info: "info"
+#   '7':
+#     name: "Финансы"
+#     info: "info"
+#   '8':
+#     name: "Современная евангелизация"
+#     info: "info"
+
+# my_seminar:
+#   available:
+#     reply: |
+#       Вы записаны на семинар "{seminar}"
+#       {info}
+#     children:
+#       - text: "Отменить запись"
+#         data: "cancel_seminar"
+#       - text: "Назад"
+#         data: "seminars"
+#   not_available:
+#     reply: "Вы не записаны на семинар"
+#     children:
+#       - text: "Назад"
+#         data: "seminars"
+
+# question:
+#   reply: "Задайте свой вопрос:"
+#   children:
+#     - text: "Отменить"
+#       data: "cancel"
+
+# feedback:
+#   reply: "Напишите свой отзыв/свидетельство:"
+#   children:
+#     - text: "Отменить"
+#       data: "cancel"
+
+
+
+# church_schedule:
+#   reply: |
+#     Служения:
+#     🔸 понедельник (19:00) - молитвенное служение;
+#     🔸 среда/четверг (19:00) - служение регионов;
+#     🔸 пятница (19:00) - молодёжное служение;
+#     🔸 воскресение (09:00 / 11:30 / 14:00) - общецерковное служение;
+#   children:
+#     - text: "Назад"
+#       data: "menu"
+
+# completed:
+#   reply:
+#     success: "Запись произведена успешно"
+#     question: "Вопрос успешно записан."
+#     feedback: "Отзыв успешно записан."
+#     unsuccess: "Простите, но возможно кто-то уже забронировал это время\nПопробуйте ещё раз 🙏"
+#     removed: "Запись успешно отменена"
+#     cancel: "Успешно отменено"
+#   children:
+#     - text: "Меню"
+#       data: "menu"
