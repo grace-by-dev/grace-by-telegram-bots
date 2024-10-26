@@ -194,7 +194,7 @@ class PostgreSQL:
                 """,
                 (user_id,),
             ).fetchall()
-        
+
     def cancel_my_seminar(self, user_id: int, seminar_number: int) -> None:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(

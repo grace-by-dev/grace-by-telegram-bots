@@ -1,4 +1,3 @@
-from functools import partial
 import os
 import re
 
@@ -32,7 +31,8 @@ logger = get_logger(__name__)
 sql = PostgreSQL()
 user_utils = UserUtils(env_file)
 
-def show_schedule_day(callback: types.CallbackQuery, button, day: int) -> None:
+
+def show_schedule_day(callback: types.CallbackQuery, button: any, day: int) -> None:
     schedule = sql.get_schedule(day)
     schedule = [
         button.reply.row_template.format(time=time, event=event) for (time, event) in schedule
@@ -43,7 +43,7 @@ def show_schedule_day(callback: types.CallbackQuery, button, day: int) -> None:
     )
 
 
-def show_counselors(callback: types.CallbackQuery, button) -> None:
+def show_counselors(callback: types.CallbackQuery, button: any) -> None:
     counselors = sql.get_counselors()
     children = []
     for counselor_id, name in counselors:
@@ -54,7 +54,9 @@ def show_counselors(callback: types.CallbackQuery, button) -> None:
     )
 
 
-def show_particular_counselor(callback: types.CallbackQuery, button, counselor_id: int) -> None:
+def show_particular_counselor(
+    callback: types.CallbackQuery, button: any, counselor_id: int
+) -> None:
     name, description = sql.get_counselor_info(counselor_id)
     timeslots = sql.get_counselor_timeslots(counselor_id)
     reply = button.reply.format(name=name, n=len(timeslots), description=description)
@@ -70,7 +72,9 @@ def show_particular_counselor(callback: types.CallbackQuery, button, counselor_i
     )
 
 
-def book_counseling(callback: types.CallbackQuery, button, counselor_id: int, time: str) -> None:
+def book_counseling(
+    callback: types.CallbackQuery, button: any, counselor_id: int, time: str
+) -> None:
     status = sql.book_counseling(
         counselor_id=counselor_id, user_id=callback.message.chat.id, time=time
     )
@@ -78,7 +82,7 @@ def book_counseling(callback: types.CallbackQuery, button, counselor_id: int, ti
     edit_keyboard_message(callback, **button, bot=bot)
 
 
-def show_my_counseling(callback: types.CallbackQuery, button) -> None:
+def show_my_counseling(callback: types.CallbackQuery, button: any) -> None:
     booking = sql.get_my_counseling(user_id=callback.message.chat.id)
     if booking:
         name, description, time = booking
@@ -92,12 +96,12 @@ def show_my_counseling(callback: types.CallbackQuery, button) -> None:
         edit_keyboard_message(callback, **button.missing, bot=bot)
 
 
-def cancel_counseling(callback: types.CallbackQuery, button) -> None:
+def cancel_counseling(callback: types.CallbackQuery, button: any) -> None:
     sql.cancel_counseling(callback.message.chat.id)
     edit_keyboard_message(callback, **button, bot=bot)
 
 
-def show_seminars(callback: types.CallbackQuery, button) -> None:
+def show_seminars(callback: types.CallbackQuery, button: any) -> None:
     seminars = sql.get_seminars()
     children = []
     for seminar_id, title in seminars:
@@ -108,7 +112,7 @@ def show_seminars(callback: types.CallbackQuery, button) -> None:
     )
 
 
-def show_particular_seminar(callback: types.CallbackQuery, button, seminar_id: int) -> None:
+def show_particular_seminar(callback: types.CallbackQuery, button: any, seminar_id: int) -> None:
     enroll, back = button.children
     title, description = sql.get_seminar_info(seminar_id)
     reply = button.reply.format(title=title, description=description)
@@ -118,7 +122,7 @@ def show_particular_seminar(callback: types.CallbackQuery, button, seminar_id: i
     )
 
 
-def choose_seminar_number(callback: types.CallbackQuery, button, seminar_id: int) -> None:
+def choose_seminar_number(callback: types.CallbackQuery, button: any, seminar_id: int) -> None:
     first, second, back = button.children
     title, description = sql.get_seminar_info(seminar_id)
     reply = button.reply.format(title=title, description=description)
@@ -132,17 +136,20 @@ def choose_seminar_number(callback: types.CallbackQuery, button, seminar_id: int
     )
 
 
-def enroll_for_seminar(callback: types.CallbackQuery, button, seminar_id: int, seminar_number: int) -> None:
+def enroll_for_seminar(
+    callback: types.CallbackQuery, button: any, seminar_id: int, seminar_number: int
+) -> None:
     sql.enroll_for_seminar(
         seminar_id=seminar_id, user_id=callback.message.chat.id, seminar_number=seminar_number
     )
     edit_keyboard_message(callback, **button, bot=bot)
 
 
-
-def show_my_particular_seminar(callback: types.CallbackQuery, button, id: int) -> None:
+def show_my_particular_seminar(
+    callback: types.CallbackQuery, button: any, seminar_num: int
+) -> None:
     seminars = sql.get_my_seminars(callback.message.chat.id)
-    (title, description) = seminars[int(id) - 1]
+    (title, description) = seminars[int(seminar_num) - 1]
     reply = button.reply.missing
     cancel, back = button.children
     children = []
@@ -155,15 +162,14 @@ def show_my_particular_seminar(callback: types.CallbackQuery, button, id: int) -
     )
 
 
-def cancel_my_seminar(callback: types.CallbackQuery, button, id: int) -> None:
-    id = int(id)
-    sql.cancel_my_seminar(callback.message.chat.id, id)
+def cancel_my_seminar(callback: types.CallbackQuery, button: any, seminar_num: int) -> None:
+    sql.cancel_my_seminar(callback.message.chat.id, seminar_num)
     edit_keyboard_message(
         callback, reply=button.reply, children=button.children, row_width=button.row_width, bot=bot
     )
 
 
-def show_basic_button(callback: types.CallbackQuery, button) -> None:
+def show_basic_button(callback: types.CallbackQuery, button: any) -> None:
     edit_keyboard_message(callback, **button, bot=bot)
 
 
@@ -177,7 +183,6 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
         ("^subscribe$", show_basic_button),
         ("^church_schedule$", show_basic_button),
         ("^seminars::my$", show_basic_button),
-        
         ("^schedule::day::(\\d+)$", show_schedule_day),
         ("^counseling::options$", show_counselors),
         ("^counseling::options::(\\d+)$", show_particular_counselor),
