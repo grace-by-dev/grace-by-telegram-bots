@@ -100,16 +100,28 @@ class PostgreSQL:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                    UPDATE counseling
-                    SET user_id = %s
-                    WHERE counselor_id = %s
-                        AND user_id IS NULL
-                        AND time = %s
+                UPDATE counseling
+                SET user_id = %s
+                WHERE counselor_id = %s
+                    AND user_id IS NULL
+                    AND time = %s
                 """,
                 (user_id, counselor_id, time),
             )
             status = cur.rowcount != 0
-            conn.commit()
+            if status:
+                cur.execute(
+                    """
+                    UPDATE counseling
+                    SET user_id = NULL
+                    WHERE NOT (counselor_id = %s AND time = %s)
+                        AND user_id = %s
+                    """,
+                    (counselor_id, time, user_id),
+                )
+                conn.commit()
+            else:
+                conn.rollback()
         return status
 
     def get_my_counseling(self, user_id: int) -> list:
