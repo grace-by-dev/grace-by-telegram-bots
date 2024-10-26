@@ -139,28 +139,17 @@ def enroll_for_seminar(callback: types.CallbackQuery, button, seminar_id: int, s
     edit_keyboard_message(callback, **button, bot=bot)
 
 
-def show_my_seminars(callback: types.CallbackQuery, button) -> None:
-    (title1, description1), (title2, description2) = sql.get_my_seminars(callback.message.chat.id)
-    reply = button.reply.exists if title1 else button.reply.missing
-    seminar1, seminar2, back = button.children
-    children = []
-    if title1:
-        children.append(seminar1)
-    if title2:
-        children.append(seminar2)
-    children.append(back)
-    edit_keyboard_message(
-        callback, reply=reply, children=children, row_width=button.row_width, bot=bot
-    )
-
 
 def show_my_particular_seminar(callback: types.CallbackQuery, button, id: int) -> None:
-    id = int(id)
     seminars = sql.get_my_seminars(callback.message.chat.id)
     (title, description) = seminars[int(id) - 1]
-    reply = button.reply.template.format(title=title, description=description)
+    reply = button.reply.missing
     cancel, back = button.children
-    children = [{"text": cancel.text, "data": f"{callback.data}::cancel"}, back]
+    children = []
+    if title:
+        reply = button.reply.template.format(title=title, description=description)
+        children.append({"text": cancel.text, "data": f"{callback.data}::cancel"})
+    children.append(back)
     edit_keyboard_message(
         callback, reply=reply, children=children, row_width=button.row_width, bot=bot
     )
@@ -187,6 +176,8 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
         ("^seminars$", show_basic_button),
         ("^subscribe$", show_basic_button),
         ("^church_schedule$", show_basic_button),
+        ("^seminars::my$", show_basic_button),
+        
         ("^schedule::day::(\\d+)$", show_schedule_day),
         ("^counseling::options$", show_counselors),
         ("^counseling::options::(\\d+)$", show_particular_counselor),
@@ -196,7 +187,6 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
         ("^seminars::options::(\\d+)$", show_particular_seminar),
         ("^seminars::options::(\\d+)::enroll$", choose_seminar_number),
         ("^seminars::options::(\\d+)::enroll::(\\d)$", enroll_for_seminar),
-        ("^seminars::my$", show_my_seminars),
         ("^seminars::my::(\\d{1,2})$", show_my_particular_seminar),
         ("^seminars::my::(\\d{1,2})::cancel$", cancel_my_seminar),
     ]

@@ -165,9 +165,7 @@
 
 
 "^seminars::my$":
-  reply: 
-    exists: "Мои семинары:"
-    missing: "Вы не записались на семинары"
+  reply: "Мои семинары:"
   row_width: 2
   children:
     - text: "Семинар №1"
@@ -180,6 +178,7 @@
 "^seminars::my::(\\d{1,2})$":
   reply: 
     template: "{title}\n\n{description}"
+    missing: "Вы не записались на этот семинар"
   row_width: 2
   children:
     - text: "Отписаться"
