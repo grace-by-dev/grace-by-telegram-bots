@@ -194,3 +194,15 @@ class PostgreSQL:
                 """,
                 (user_id,),
             ).fetchall()
+        
+    def cancel_my_seminar(self, user_id: int, seminar_number: int) -> None:
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE seminar_enrollement
+                SET seminar_id = NULL
+                WHERE user_id = %s and seminar_number = %s
+                """,
+                (user_id, seminar_number),
+            )
+            conn.commit()
