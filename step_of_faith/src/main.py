@@ -40,6 +40,7 @@ for data in [
     "^counseling$",
     "^seminars$",
     "^subscribe$",
+    "^church_schedule$",
 ]:
     filter_ = partial(filter_callback, pattern=data)
     processor = partial(edit_keyboard_message, **buttons[data], bot=bot)
