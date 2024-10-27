@@ -1,5 +1,6 @@
 import os
 import re
+from datetime import datetime
 
 from dotenv import load_dotenv
 from omegaconf import OmegaConf
@@ -98,8 +99,14 @@ def show_my_counseling(callback: types.CallbackQuery, button: DictConfig) -> Non
 
 
 def cancel_counseling(callback: types.CallbackQuery, button: DictConfig) -> None:
-    sql.cancel_counseling(callback.message.chat.id)
-    edit_keyboard_message(callback, **button, bot=bot)
+    *_, time = sql.get_my_counseling(user_id=callback.message.chat.id)
+    reply = button.reply.failure
+    now = datetime.now()
+    time_diff = ((time.hour-now.hour) * 60 + time.minute - now.minute) * 60 + time.second - now.second
+    if time_diff > 300 or time_diff < 0:
+        reply = button.reply.success
+        sql.cancel_counseling(callback.message.chat.id)
+    edit_keyboard_message(callback, children=button.children, reply=reply, row_width=button.row_width, bot=bot)
 
 
 def show_seminars(callback: types.CallbackQuery, button: DictConfig) -> None:
@@ -187,8 +194,9 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
         ("^schedule::day::(\\d+)$", show_schedule_day),
         ("^counseling::options$", show_counselors),
         ("^counseling::options::(\\d+)$", show_particular_counselor),
-        ("^counseling::options::(\\d+)::(\\d{1,2}):(\\d{1,2})$", book_counseling),
+        ("^counseling::options::(\\d+)::(\\d{1,2}:\\d{1,2})$", book_counseling),
         ("^counseling::my$", show_my_counseling),
+        ("^counseling::my::cancel$", cancel_counseling),
         ("^seminars::options$", show_seminars),
         ("^seminars::options::(\\d+)$", show_particular_seminar),
         ("^seminars::options::(\\d+)::enroll$", choose_seminar_number),

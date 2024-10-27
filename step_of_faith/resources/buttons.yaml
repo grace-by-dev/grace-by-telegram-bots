@@ -77,7 +77,7 @@
     - text: "Назад"
       data: "counseling::options"
 
-"^counseling::options::(\\d+)::(\\d{1,2}):(\\d{1,2})$":
+"^counseling::options::(\\d+)::(\\d{1,2}:\\d{1,2})$":
   success:
     reply: "Запись произведена успешно"
     row_width: 1
@@ -121,7 +121,9 @@
         data: "counseling"
 
 "^counseling::my::cancel$":
-  reply: "Запись отменена"
+  reply: 
+    success: "Запись отменена"
+    failure: "Нельзя отменить запись менее, чем за 5 минут до начала"
   row_width: 1
   children:
     - text: "В меню"
