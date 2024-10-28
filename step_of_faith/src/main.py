@@ -33,6 +33,13 @@ logger = get_logger(__name__)
 sql = PostgreSQL()
 user_utils = UserUtils(env_file)
 
+MIN_BOOKING_TIME = 300  # Minimum time in seconds before an event when booking is not allowed
+
+
+def is_time_valid_for_booking_and_cancellation(time: datetime) -> bool:
+    now = datetime.now()
+    time_diff = ((time.hour-now.hour) * 60 + time.minute - now.minute) * 60 + time.second - now.second
+    return time_diff > MIN_BOOKING_TIME
 
 def show_schedule_day(callback: types.CallbackQuery, button: DictConfig, day: int) -> None:
     schedule = sql.get_schedule(day)
@@ -61,13 +68,14 @@ def show_particular_counselor(
 ) -> None:
     name, description = sql.get_counselor_info(counselor_id)
     timeslots = sql.get_counselor_timeslots(counselor_id)
-    reply = button.reply.format(name=name, n=len(timeslots), description=description)
     children = []
     for (slot,) in timeslots:
-        time = slot.strftime("%H:%M")
-        children.append(
-            {"text": button.child_template.format(time=time), "data": f"{callback.data}::{time}"}
-        )
+        if is_time_valid_for_booking_and_cancellation(slot):
+            time = slot.strftime("%H:%M")
+            children.append(
+                {"text": button.child_template.format(time=time), "data": f"{callback.data}::{time}"}
+            )
+    reply = button.reply.format(name=name, n=len(children), description=description)
     children.extend(button.children)
     edit_keyboard_message(
         callback, reply=reply, row_width=button.row_width, children=children, bot=bot
@@ -77,9 +85,22 @@ def show_particular_counselor(
 def book_counseling(
     callback: types.CallbackQuery, button: DictConfig, counselor_id: int, time: str
 ) -> None:
+    time = datetime.strptime(time, "%H:%M")
+    if not is_time_valid_for_booking_and_cancellation(time):
+        edit_keyboard_message(callback, **button.time_failure, bot=bot)
+        return
+    
+    booking = sql.get_my_counseling(user_id=callback.message.chat.id)
+    if booking:
+        name, description, old_time = booking
+        if not is_time_valid_for_booking_and_cancellation(old_time):
+            edit_keyboard_message(callback, **button.last_counseling_time_failure, bot=bot)
+            return
+
     status = sql.book_counseling(
         counselor_id=counselor_id, user_id=callback.message.chat.id, time=time
     )
+    
     button = button.success if status else button.failure
     edit_keyboard_message(callback, **button, bot=bot)
 
@@ -101,9 +122,7 @@ def show_my_counseling(callback: types.CallbackQuery, button: DictConfig) -> Non
 def cancel_counseling(callback: types.CallbackQuery, button: DictConfig) -> None:
     *_, time = sql.get_my_counseling(user_id=callback.message.chat.id)
     reply = button.reply.failure
-    now = datetime.now()
-    time_diff = ((time.hour-now.hour) * 60 + time.minute - now.minute) * 60 + time.second - now.second
-    if time_diff > 300 or time_diff < 0:
+    if is_time_valid_for_booking_and_cancellation(time):
         reply = button.reply.success
         sql.cancel_counseling(callback.message.chat.id)
     edit_keyboard_message(callback, children=button.children, reply=reply, row_width=button.row_width, bot=bot)

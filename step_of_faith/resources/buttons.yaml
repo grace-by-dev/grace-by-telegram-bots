@@ -84,6 +84,20 @@
     children:
       - text: "В меню"
         data: "menu"
+  time_failure:
+    reply: "Нельзя запиcаться на душепопечение менее, чем за 5 минут до начала"
+    row_width: 1
+    children:
+      - text: Список служителей
+        data: "counseling::options"
+      - text: "В меню"
+        data: "menu"
+  last_counseling_time_failure:
+    reply: "Не получилось записаться, так как вы уже записаны на душепопечение, до которого осталось менее 5 минут"
+    row_width: 1
+    children:
+      - text: "В меню"
+        data: "menu"
   failure: 
     reply: "Кто-то тебя опередил, попробуй другое время"
     row_width: 2
