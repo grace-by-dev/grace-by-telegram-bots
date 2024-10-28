@@ -183,28 +183,35 @@ def show_basic_button(callback: types.CallbackQuery, button: DictConfig) -> None
 
 @bot.callback_query_handler(func=lambda callback: callback.data)
 def check_callback_data(callback: types.CallbackQuery) -> None:
-    callback_patterns = [
-        ("^menu$", show_basic_button),
-        ("^schedule$", show_basic_button),
-        ("^counseling$", show_basic_button),
-        ("^seminars$", show_basic_button),
-        ("^subscribe$", show_basic_button),
-        ("^church_schedule$", show_basic_button),
-        ("^seminars::my$", show_basic_button),
+
+    static_callbacks_dict = {
+        "menu": show_basic_button,
+        "schedule": show_basic_button,
+        "counseling": show_basic_button,
+        "seminars": show_basic_button,
+        "subscribe": show_basic_button,
+        "church_schedule": show_basic_button,
+        "seminars::my": show_basic_button,
+        "counseling::options": show_counselors,
+        "counseling::my": show_my_counseling,
+        "counseling::my::cancel": cancel_counseling,
+        "seminars::options": show_seminars,
+    }
+
+    if callback.data in static_callbacks_dict:
+        static_callbacks_dict[callback.data](callback, buttons[f"^{callback.data}$"])
+
+    dinamic_callback_patterns = [
         ("^schedule::day::(\\d+)$", show_schedule_day),
-        ("^counseling::options$", show_counselors),
         ("^counseling::options::(\\d+)$", show_particular_counselor),
         ("^counseling::options::(\\d+)::(\\d{1,2}:\\d{1,2})$", book_counseling),
-        ("^counseling::my$", show_my_counseling),
-        ("^counseling::my::cancel$", cancel_counseling),
-        ("^seminars::options$", show_seminars),
         ("^seminars::options::(\\d+)$", show_particular_seminar),
         ("^seminars::options::(\\d+)::enroll$", choose_seminar_number),
         ("^seminars::options::(\\d+)::enroll::(\\d)$", enroll_for_seminar),
         ("^seminars::my::(\\d{1,2})$", show_my_particular_seminar),
         ("^seminars::my::(\\d{1,2})::cancel$", cancel_my_seminar),
     ]
-    for pattern, func in callback_patterns:
+    for pattern, func in dinamic_callback_patterns:
         match = re.search(pattern, callback.data)
         if match is not None:
             func(callback, buttons[pattern], *match.groups())
