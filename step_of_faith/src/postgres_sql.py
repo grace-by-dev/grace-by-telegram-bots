@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 import psycopg
+import datetime
 
 
 def get_connection() -> object:
@@ -194,6 +195,20 @@ class PostgreSQL:
                 """,
                 (user_id,),
             ).fetchall()
+        
+    def get_seminar_start_time(self, seminar_number: int) -> datetime.datetime:
+        with get_connection().cursor() as cur:
+            data = cur.execute(
+                """
+                SELECT starts_at
+                FROM seminar_numbers
+                WHERE seminar_number = %s; 
+                """,
+                (seminar_number,),
+            ).fetchone()
+            if data is None:
+                return None
+            return data[0]
 
     def cancel_my_seminar(self, user_id: int, seminar_number: int) -> None:
         with get_connection() as conn, conn.cursor() as cur:

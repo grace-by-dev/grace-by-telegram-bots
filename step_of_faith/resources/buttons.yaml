@@ -85,7 +85,7 @@
       - text: "В меню"
         data: "menu"
   time_failure:
-    reply: "Нельзя запиcаться на душепопечение менее, чем за 5 минут до начала"
+    reply: "Нельзя запиcаться на душепопечение менее, чем за 10 минут до начала"
     row_width: 1
     children:
       - text: Список служителей
@@ -93,7 +93,7 @@
       - text: "В меню"
         data: "menu"
   last_counseling_time_failure:
-    reply: "Не получилось записаться, так как вы уже записаны на душепопечение, до которого осталось менее 5 минут"
+    reply: "Не получилось записаться, так как вы уже записаны на душепопечение, до которого осталось менее 10 минут"
     row_width: 1
     children:
       - text: "В меню"
@@ -137,7 +137,7 @@
 "^counseling::my::cancel$":
   reply: 
     success: "Запись отменена"
-    failure: "Нельзя отменить запись менее, чем за 5 минут до начала"
+    failure: "Нельзя отменить запись менее, чем за 10 минут до начала"
   row_width: 1
   children:
     - text: "В меню"
@@ -171,13 +171,22 @@
       data: "seminars::options::{seminar_id}"
 
 "^seminars::options::(\\d+)::enroll::(\\d)$":
-  reply: "Запись произведена успешно"
-  row_width: 2
-  children:
-    - text: "К семинарам"
-      data: "seminars::options"
-    - text: "В меню"
-      data: "menu"
+  success:
+    reply: "Запись произведена успешно"
+    row_width: 2
+    children:
+      - text: "К семинарам"
+        data: "seminars::options"
+      - text: "В меню"
+        data: "menu"
+  time_failure:
+    reply: "Нельзя записаться на семинар менее, чем за 10 минут до начала"
+    row_width: 2
+    children:
+      - text: "К семинарам"
+        data: "seminars::options"
+      - text: "В меню"
+        data: "menu"
 
 
 "^seminars::my$":
@@ -202,11 +211,18 @@
       data: "seminars::my"
 
 "^seminars::my::(\\d{1,2})::cancel$":
-  reply: "Вы отписались от семинара"
-  row_width: 1
-  children:
-    - text: "В меню"
-      data: "menu"
+  success:
+    reply: "Вы отписались от семинара"
+    row_width: 1
+    children:
+      - text: "В меню"
+        data: "menu"
+  time_failure:
+    reply: "Нельзя отписаться от семинара менее, чем за 10 минут до начала"
+    row_width: 1
+    children:
+      - text: "В меню"
+        data: "menu"
 
 
 "^church_schedule$":

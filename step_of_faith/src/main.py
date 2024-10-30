@@ -2,6 +2,7 @@ import os
 import re
 from datetime import datetime
 
+import pytz
 from dotenv import load_dotenv
 from omegaconf import OmegaConf
 from omegaconf import DictConfig
@@ -13,7 +14,6 @@ from common.src.utils import get_logger
 from common.src.utils import send_keyboard_message
 from step_of_faith.src.postgres_sql import PostgreSQL
 from step_of_faith.src.user_utils import UserUtils
-
 
 env_file = "step_of_faith/.env"
 yaml_file = "step_of_faith/resources/replies.yaml"
@@ -28,18 +28,20 @@ token = os.getenv("BOT_TOKEN")
 
 bot = telebot.TeleBot(token)
 
+timezone = pytz.timezone(os.getenv("TIMEZONE"))
+
 logger = get_logger(__name__)
 
 sql = PostgreSQL()
 user_utils = UserUtils(env_file)
 
-MIN_BOOKING_TIME = 300  # Minimum time in seconds before an event when booking is not allowed
+min_booking_time = int(os.getenv("MIN_BOOKING_TIME"))
 
 
 def is_time_valid_for_booking_and_cancellation(time: datetime) -> bool:
-    now = datetime.now()
+    now = datetime.now(timezone)
     time_diff = ((time.hour-now.hour) * 60 + time.minute - now.minute) * 60 + time.second - now.second
-    return time_diff > MIN_BOOKING_TIME
+    return time_diff > min_booking_time
 
 def show_schedule_day(callback: types.CallbackQuery, button: DictConfig, day: int) -> None:
     schedule = sql.get_schedule(day)
@@ -166,10 +168,15 @@ def choose_seminar_number(callback: types.CallbackQuery, button: DictConfig, sem
 def enroll_for_seminar(
     callback: types.CallbackQuery, button: DictConfig, seminar_id: int, seminar_number: int
 ) -> None:
+    time = sql.get_seminar_start_time(seminar_number)
+    print(time)
+    if not is_time_valid_for_booking_and_cancellation(time):
+        edit_keyboard_message(callback, **button.time_failure, bot=bot)
+        return
     sql.enroll_for_seminar(
         seminar_id=seminar_id, user_id=callback.message.chat.id, seminar_number=seminar_number
     )
-    edit_keyboard_message(callback, **button, bot=bot)
+    edit_keyboard_message(callback, **button.success, bot=bot)
 
 
 def show_my_particular_seminar(
@@ -190,9 +197,13 @@ def show_my_particular_seminar(
 
 
 def cancel_my_seminar(callback: types.CallbackQuery, button: DictConfig, seminar_num: int) -> None:
+    time = sql.get_seminar_start_time(seminar_num)
+    if not is_time_valid_for_booking_and_cancellation(time):
+        edit_keyboard_message(callback, **button.time_failure, bot=bot)
+        return
     sql.cancel_my_seminar(callback.message.chat.id, seminar_num)
     edit_keyboard_message(
-        callback, reply=button.reply, children=button.children, row_width=button.row_width, bot=bot
+        callback, **button.success, row_width=button.row_width, bot=bot
     )
 
 
