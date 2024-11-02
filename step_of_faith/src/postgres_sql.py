@@ -259,7 +259,7 @@ class PostgreSQL:
                 FROM (
                     SELECT seminar_id,
                         COUNT(DISTINCT user_id) AS number_of_people,
-                        ROW_NUMBER() OVER (ORDER BY COUNT(DISTINCT user_id) DESC) - 1 AS row_number
+                        ROW_NUMBER() OVER (ORDER BY COUNT(user_id) DESC) - 1 AS row_number
                     FROM seminar_enrollement
                     WHERE seminar_id IS NOT NULL
                     GROUP BY seminar_id

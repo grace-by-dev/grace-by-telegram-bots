@@ -168,8 +168,9 @@ def choose_seminar_number(callback: types.CallbackQuery, button: DictConfig, sem
 def enroll_for_seminar(
     callback: types.CallbackQuery, button: DictConfig, seminar_id: int, seminar_number: int
 ) -> None:
+    seminar_id = int(seminar_id)
     seminars = sql.get_seminar_rooms()
-    if seminars[str(seminar_id)]["number_of_people"] > seminars[str(seminar_id)]["capacity"]:
+    if seminar_id in seminars and seminars[seminar_id]["number_of_people"] > seminars[seminar_id]["capacity"]:
         edit_keyboard_message(callback, **button.room_failure, bot=bot)
         return
     time = sql.get_seminar_start_time(seminar_number)
@@ -261,6 +262,5 @@ def menu(message: types.Message) -> None:
 
 
 if __name__ == "__main__":
-    print(sql.get_seminar_rooms())
     logger.info("START BOT...")
     bot.infinity_polling()
