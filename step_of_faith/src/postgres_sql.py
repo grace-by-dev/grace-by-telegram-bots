@@ -221,3 +221,67 @@ class PostgreSQL:
                 (user_id, seminar_number),
             )
             conn.commit()
+        
+    def get_room(self, n: int) -> tuple:
+        with get_connection().cursor() as cur:
+            cur.execute(
+                """
+                SELECT room, capacity
+                FROM spaces
+                ORDER BY capacity DESC
+                LIMIT 1 OFFSET %s;
+                """,
+                (n,)
+            )
+            return cur.fetchone()
+        
+    def get_seminar_attendance_count(self) -> list:
+        with get_connection().cursor() as cur:
+            return cur.execute(
+                """
+                SELECT seminar_id, COUNT(DISTINCT user_id) AS number_of_people
+                FROM seminar_enrollement
+                WHERE seminar_id IS NOT NULL
+                GROUP BY seminar_id
+                ORDER BY number_of_people DESC;
+                """
+            ).fetchall()
+
+
+    def get_seminar_rooms(self) -> list:
+        with get_connection().cursor() as cur:
+            cur.execute(
+                """
+                SELECT s.seminar_id,
+                    s.number_of_people,
+                    r.room,
+                    r.capacity
+                FROM (
+                    SELECT seminar_id,
+                        COUNT(DISTINCT user_id) AS number_of_people,
+                        ROW_NUMBER() OVER (ORDER BY COUNT(DISTINCT user_id) DESC) - 1 AS row_number
+                    FROM seminar_enrollement
+                    WHERE seminar_id IS NOT NULL
+                    GROUP BY seminar_id
+                ) AS s
+                JOIN (
+                    SELECT room,
+                        capacity,
+                        ROW_NUMBER() OVER (ORDER BY capacity DESC) - 1 AS row_number
+                    FROM spaces
+                ) AS r ON s.row_number = r.row_number;
+                """
+            )
+            results = cur.fetchall()
+            
+            return {
+                 row[0]: {
+                    "number_of_people": row[1],
+                    "room": row[2],
+                    "capacity": row[3]
+                }
+                for row in results
+            }
+
+
+

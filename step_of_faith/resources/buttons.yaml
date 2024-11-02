@@ -179,6 +179,14 @@
         data: "seminars::options"
       - text: "В меню"
         data: "menu"
+  room_failure:
+    reply: "На данный семинар не осталось свободных мест"
+    row_width: 2
+    children:
+      - text: "К семинарам"
+        data: "seminars::options"
+      - text: "В меню"
+        data: "menu"
   time_failure:
     reply: "Нельзя записаться на семинар менее, чем за 10 минут до начала"
     row_width: 2

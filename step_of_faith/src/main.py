@@ -87,7 +87,7 @@ def show_particular_counselor(
 def book_counseling(
     callback: types.CallbackQuery, button: DictConfig, counselor_id: int, time: str
 ) -> None:
-    time = datetime.strptime(time, "%H:%M")
+    time = datetime.strptime(time, "%H:%M").time()
     if not is_time_valid_for_booking_and_cancellation(time):
         edit_keyboard_message(callback, **button.time_failure, bot=bot)
         return
@@ -168,8 +168,11 @@ def choose_seminar_number(callback: types.CallbackQuery, button: DictConfig, sem
 def enroll_for_seminar(
     callback: types.CallbackQuery, button: DictConfig, seminar_id: int, seminar_number: int
 ) -> None:
+    seminars = sql.get_seminar_rooms()
+    if seminars[str(seminar_id)]["number_of_people"] > seminars[str(seminar_id)]["capacity"]:
+        edit_keyboard_message(callback, **button.room_failure, bot=bot)
+        return
     time = sql.get_seminar_start_time(seminar_number)
-    print(time)
     if not is_time_valid_for_booking_and_cancellation(time):
         edit_keyboard_message(callback, **button.time_failure, bot=bot)
         return
@@ -258,5 +261,6 @@ def menu(message: types.Message) -> None:
 
 
 if __name__ == "__main__":
+    print(sql.get_seminar_rooms())
     logger.info("START BOT...")
     bot.infinity_polling()
