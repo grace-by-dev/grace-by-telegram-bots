@@ -133,8 +133,10 @@ def cancel_counseling(callback: types.CallbackQuery, button: DictConfig) -> None
 def show_seminars(callback: types.CallbackQuery, button: DictConfig) -> None:
     seminars = sql.get_seminars()
     children = []
+    seminars_with_capacity = sql.get_seminar_rooms()
     for seminar_id, title in seminars:
-        children.append({"text": title, "data": f"{callback.data}::{seminar_id}"})
+        if seminar_id not in seminars_with_capacity or seminars_with_capacity[seminar_id]["number_of_people"] < seminars_with_capacity[seminar_id]["capacity"]:
+            children.append({"text": title, "data": f"{callback.data}::{seminar_id}"})
     children.extend(button.children)
     edit_keyboard_message(
         callback, reply=button.reply, row_width=button.row_width, children=children, bot=bot
@@ -169,18 +171,15 @@ def enroll_for_seminar(
     callback: types.CallbackQuery, button: DictConfig, seminar_id: int, seminar_number: int
 ) -> None:
     seminar_id = int(seminar_id)
-    seminars = sql.get_seminar_rooms()
-    if seminar_id in seminars and seminars[seminar_id]["number_of_people"] >= seminars[seminar_id]["capacity"]:
-        edit_keyboard_message(callback, **button.room_failure, bot=bot)
-        return
     time = sql.get_seminar_start_time(seminar_number)
     if not is_time_valid_for_booking_and_cancellation(time):
         edit_keyboard_message(callback, **button.time_failure, bot=bot)
         return
-    sql.enroll_for_seminar(
+    status = sql.enroll_for_seminar(
         seminar_id=seminar_id, user_id=callback.message.chat.id, seminar_number=seminar_number
     )
-    edit_keyboard_message(callback, **button.success, bot=bot)
+    buttons = button.success if status else button.room_failure
+    edit_keyboard_message(callback, **buttons, bot=bot)
 
 
 def show_my_particular_seminar(

@@ -170,17 +170,6 @@ class PostgreSQL:
                 (seminar_id,),
             ).fetchone()
 
-    def enroll_for_seminar(self, seminar_id: int, user_id: int, seminar_number: int) -> None:
-        with get_connection() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                UPDATE seminar_enrollement
-                SET seminar_id = %s
-                WHERE user_id = %s and seminar_number = %s
-                """,
-                (seminar_id, user_id, seminar_number),
-            )
-            conn.commit()
 
     def get_my_seminars(self, user_id: int) -> list:
         with get_connection().cursor() as cur:
@@ -221,35 +210,10 @@ class PostgreSQL:
                 (user_id, seminar_number),
             )
             conn.commit()
-        
-    def get_room(self, n: int) -> tuple:
-        with get_connection().cursor() as cur:
-            cur.execute(
-                """
-                SELECT room, capacity
-                FROM spaces
-                ORDER BY capacity DESC
-                LIMIT 1 OFFSET %s;
-                """,
-                (n,)
-            )
-            return cur.fetchone()
-        
-    def get_seminar_attendance_count(self) -> list:
-        with get_connection().cursor() as cur:
-            return cur.execute(
-                """
-                SELECT seminar_id, COUNT(DISTINCT user_id) AS number_of_people
-                FROM seminar_enrollement
-                WHERE seminar_id IS NOT NULL
-                GROUP BY seminar_id
-                ORDER BY number_of_people DESC;
-                """
-            ).fetchall()
 
 
     def get_seminar_rooms(self) -> list:
-        with get_connection().cursor() as cur:
+        with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT s.seminar_id,
@@ -285,3 +249,49 @@ class PostgreSQL:
 
 
 
+    def enroll_for_seminar(self, seminar_id: int, user_id: int, seminar_number: int) -> None:
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT s.seminar_id,
+                    s.number_of_people,
+                    r.room,
+                    r.capacity
+                FROM (
+                    SELECT seminar_id,
+                        COUNT(DISTINCT user_id) AS number_of_people,
+                        ROW_NUMBER() OVER (ORDER BY COUNT(user_id) DESC) - 1 AS row_number
+                    FROM seminar_enrollement
+                    WHERE seminar_id IS NOT NULL
+                    GROUP BY seminar_id
+                ) AS s
+                JOIN (
+                    SELECT room,
+                        capacity,
+                        ROW_NUMBER() OVER (ORDER BY capacity DESC) - 1 AS row_number
+                    FROM spaces
+                ) AS r ON s.row_number = r.row_number;
+                """
+            )
+            results = {
+                 row[0]: {
+                    "number_of_people": row[1],
+                    "room": row[2],
+                    "capacity": row[3]
+                }
+                for row in cur.fetchall()
+            }
+
+            status = seminar_id in results and results[seminar_id]["number_of_people"] >= results[seminar_id]["capacity"]
+            if not status:
+                cur.execute(
+                    """
+                    UPDATE seminar_enrollement
+                    SET seminar_id = %s
+                    WHERE user_id = %s and seminar_number = %s
+                    """,
+                    (seminar_id, user_id, seminar_number),
+                )
+                conn.commit()
+            else:
+                conn.rollback()
