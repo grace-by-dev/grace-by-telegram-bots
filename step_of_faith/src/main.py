@@ -170,7 +170,7 @@ def enroll_for_seminar(
 ) -> None:
     seminar_id = int(seminar_id)
     seminars = sql.get_seminar_rooms()
-    if seminar_id in seminars and seminars[seminar_id]["number_of_people"] > seminars[seminar_id]["capacity"]:
+    if seminar_id in seminars and seminars[seminar_id]["number_of_people"] >= seminars[seminar_id]["capacity"]:
         edit_keyboard_message(callback, **button.room_failure, bot=bot)
         return
     time = sql.get_seminar_start_time(seminar_number)
