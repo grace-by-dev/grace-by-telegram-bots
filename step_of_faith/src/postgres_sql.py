@@ -212,68 +212,92 @@ class PostgreSQL:
             conn.commit()
 
 
-    def get_seminar_rooms(self) -> list:
+    def enroll_for_seminar_test(self, seminar_number: int, user_id: int, seminar_id: int) -> bool:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT s.seminar_id,
-                    s.number_of_people,
-                    r.room,
-                    r.capacity
-                FROM (
-                    SELECT seminar_id,
-                        COUNT(DISTINCT user_id) AS number_of_people,
-                        ROW_NUMBER() OVER (ORDER BY COUNT(user_id) DESC) - 1 AS row_number
-                    FROM seminar_enrollement
-                    WHERE seminar_id IS NOT NULL
-                    GROUP BY seminar_id
-                ) AS s
-                JOIN (
-                    SELECT room,
+                WITH seminar_counts AS (
+                    SELECT 
+                        s.id AS seminar_id,
+                        COUNT(se.user_id) AS number_of_people,
+                        ROW_NUMBER() OVER (ORDER BY COUNT(se.user_id) DESC) AS rn
+                    FROM 
+                        seminars s
+                    LEFT JOIN seminar_enrollement se 
+                    ON s.id = se.seminar_id
+                    WHERE se.seminar_number = %s or se.seminar_number is null
+                    GROUP BY s.id
+                    ORDER BY COUNT(se.user_id) DESC
+                ),
+                room_capacities AS (
+                    SELECT 
+                        room,
                         capacity,
-                        ROW_NUMBER() OVER (ORDER BY capacity DESC) - 1 AS row_number
+                        ROW_NUMBER() OVER (ORDER BY capacity DESC) AS rn
                     FROM spaces
-                ) AS r ON s.row_number = r.row_number;
-                """
+                ),
+                merged_seminars AS (
+                    SELECT 
+                        s.seminar_id
+                    FROM seminar_counts AS s
+                    JOIN room_capacities AS r ON s.rn = r.rn
+                    WHERE s.seminar_id = %s and s.number_of_people < r.capacity
+                )
+                UPDATE seminar_enrollement
+                SET seminar_id = merged_seminars.seminar_id
+                FROM merged_seminars
+                WHERE user_id = %s and seminar_number = %s;
+                """,
+                (seminar_number, seminar_id, user_id, seminar_number),
             )
-            results = cur.fetchall()
-            
-            return {
-                 row[0]: {
-                    "number_of_people": row[1],
-                    "room": row[2],
-                    "capacity": row[3]
-                }
-                for row in results
-            }
+            return cur.rowcount > 0
 
 
 
-    def enroll_for_seminar(self, seminar_id: int, user_id: int, seminar_number: int) -> None:
+    def get_seminar_rooms(self, seminar_number: int) -> object:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT s.seminar_id,
-                    s.number_of_people,
-                    r.room,
-                    r.capacity
-                FROM (
-                    SELECT seminar_id,
-                        COUNT(DISTINCT user_id) AS number_of_people,
-                        ROW_NUMBER() OVER (ORDER BY COUNT(user_id) DESC) - 1 AS row_number
-                    FROM seminar_enrollement
-                    WHERE seminar_id IS NOT NULL
-                    GROUP BY seminar_id
-                ) AS s
-                JOIN (
-                    SELECT room,
+                WITH seminar_counts AS (
+                    SELECT 
+                        s.id AS seminar_id,
+                        COUNT(se.user_id) AS number_of_people,
+                        ROW_NUMBER() OVER (ORDER BY COUNT(se.user_id) DESC) AS rn
+                    FROM 
+                        seminars s
+                    LEFT JOIN seminar_enrollement se 
+                    ON s.id = se.seminar_id
+                    WHERE se.seminar_number = %s or se.seminar_number is null
+                    GROUP BY s.id
+                    ORDER BY COUNT(se.user_id) DESC
+                ),
+                room_capacities AS (
+                    SELECT 
+                        room,
                         capacity,
-                        ROW_NUMBER() OVER (ORDER BY capacity DESC) - 1 AS row_number
+                        ROW_NUMBER() OVER (ORDER BY capacity DESC) AS rn
                     FROM spaces
-                ) AS r ON s.row_number = r.row_number;
-                """
+                ),
+                merged_seminars AS (
+                    SELECT 
+                        s.seminar_id,
+                        s.number_of_people,
+                        r.room,
+                        r.capacity
+                    FROM seminar_counts AS s
+                    JOIN room_capacities AS r ON s.rn = r.rn
+                    WHERE s.number_of_people < r.capacity
+                )
+                SELECT 
+                    seminar_id,
+                    number_of_people,
+                    room,
+                    capacity
+                FROM merged_seminars;
+                """,
+                (seminar_number, ),
             )
-            results = {
+            result =  {
                  row[0]: {
                     "number_of_people": row[1],
                     "room": row[2],
@@ -281,17 +305,4 @@ class PostgreSQL:
                 }
                 for row in cur.fetchall()
             }
-
-            status = seminar_id in results and results[seminar_id]["number_of_people"] >= results[seminar_id]["capacity"]
-            if not status:
-                cur.execute(
-                    """
-                    UPDATE seminar_enrollement
-                    SET seminar_id = %s
-                    WHERE user_id = %s and seminar_number = %s
-                    """,
-                    (seminar_id, user_id, seminar_number),
-                )
-                conn.commit()
-            else:
-                conn.rollback()
+            return result

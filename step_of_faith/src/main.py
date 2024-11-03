@@ -133,10 +133,8 @@ def cancel_counseling(callback: types.CallbackQuery, button: DictConfig) -> None
 def show_seminars(callback: types.CallbackQuery, button: DictConfig) -> None:
     seminars = sql.get_seminars()
     children = []
-    seminars_with_capacity = sql.get_seminar_rooms()
     for seminar_id, title in seminars:
-        if seminar_id not in seminars_with_capacity or seminars_with_capacity[seminar_id]["number_of_people"] < seminars_with_capacity[seminar_id]["capacity"]:
-            children.append({"text": title, "data": f"{callback.data}::{seminar_id}"})
+        children.append({"text": title, "data": f"{callback.data}::{seminar_id}"})
     children.extend(button.children)
     edit_keyboard_message(
         callback, reply=button.reply, row_width=button.row_width, children=children, bot=bot
@@ -175,7 +173,7 @@ def enroll_for_seminar(
     if not is_time_valid_for_booking_and_cancellation(time):
         edit_keyboard_message(callback, **button.time_failure, bot=bot)
         return
-    status = sql.enroll_for_seminar(
+    status = sql.enroll_for_seminar_test(
         seminar_id=seminar_id, user_id=callback.message.chat.id, seminar_number=seminar_number
     )
     buttons = button.success if status else button.room_failure
@@ -206,7 +204,7 @@ def cancel_my_seminar(callback: types.CallbackQuery, button: DictConfig, seminar
         return
     sql.cancel_my_seminar(callback.message.chat.id, seminar_num)
     edit_keyboard_message(
-        callback, **button.success, row_width=button.row_width, bot=bot
+        callback, **button.success, bot=bot
     )
 
 
