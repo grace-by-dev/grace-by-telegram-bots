@@ -80,7 +80,7 @@ class PostgreSQL:
         with get_connection().cursor() as cur:
             return cur.execute(
                 """
-                SELECT name, description FROM counselors
+                SELECT name, description, place FROM counselors
                 WHERE id = %s;
                 """,
                 (counselor_id,),
@@ -129,7 +129,7 @@ class PostgreSQL:
         with get_connection().cursor() as cur:
             return cur.execute(
                 """
-                    SELECT name, description, time
+                    SELECT name, description, time, place
                     FROM counseling
                     JOIN counselors
                     ON counseling.counselor_id = counselors.id

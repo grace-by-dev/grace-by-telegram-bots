@@ -61,10 +61,12 @@ def validate_timediff(time: datetime) -> bool:
 
 def show_schedule_day(callback: types.CallbackQuery, button: DictConfig, day: int) -> None:
     schedule = db.get_schedule(day)
+    day_text = "четверг" if day == "1" else "пятница"
     schedule = [
-        button.reply.row_template.format(time=time, event=event) for (time, event) in schedule
+        button.reply.row_template.format(time=time.strftime("%H:%M"), event=event)
+        for (time, event) in schedule
     ]
-    schedule = button.reply.header + "\n" + "\n".join(schedule)
+    schedule = "\n".join([button.reply.header.format(day=day_text), *schedule])
     edit_keyboard_message(
         callback, reply=schedule, row_width=button.row_width, children=button.children, bot=bot
     )
@@ -84,7 +86,7 @@ def show_counselors(callback: types.CallbackQuery, button: DictConfig) -> None:
 def show_particular_counselor(
     callback: types.CallbackQuery, button: DictConfig, counselor_id: int
 ) -> None:
-    name, description = db.get_counselor_info(counselor_id)
+    name, description, place = db.get_counselor_info(counselor_id)
     timeslots = db.get_counselor_timeslots(counselor_id)
     children = []
     for (slot,) in timeslots:
@@ -96,7 +98,7 @@ def show_particular_counselor(
                     "data": f"{callback.data}::{time}",
                 }
             )
-    reply = button.reply.format(name=name, n=len(children), description=description)
+    reply = button.reply.format(name=name, n=len(children), place=place, description=description)
     children.extend(button.children)
     edit_keyboard_message(
         callback, reply=reply, row_width=button.row_width, children=children, bot=bot
@@ -121,35 +123,43 @@ def book_counseling(
             edit_keyboard_message(callback, **button.passed, bot=bot)
         case TimediffCheckStatus.success:
             booking = db.get_my_counseling(user_id=callback.message.chat.id)
-            if booking:
-                *_, old_time = booking
-                match validate_timediff(old_time):
-                    case TimediffCheckStatus.too_close:
-                        button = button.booking_too_close
-                        edit_keyboard_message(
-                            callback,
-                            button.reply.format(minutes=MIN_BOOKING_TIME),
-                            button.row_width,
-                            button.children,
-                            bot=bot,
-                        )
-                    case TimediffCheckStatus.passed:
-                        edit_keyboard_message(callback, **button.booking_passed, bot=bot)
-                    case TimediffCheckStatus.success:
-                        status = db.book_counseling(
-                            counselor_id=counselor_id, user_id=callback.message.chat.id, time=time
-                        )
-                        button = button.success if status else button.too_slow
-                        edit_keyboard_message(callback, **button, bot=bot)
+            match booking:
+                case None:
+                    status = db.book_counseling(
+                        counselor_id=counselor_id, user_id=callback.message.chat.id, time=time
+                    )
+                    button = button.success if status else button.too_slow
+                    edit_keyboard_message(callback, **button, bot=bot)
+                case *_, old_time, _:
+                    match validate_timediff(old_time):
+                        case TimediffCheckStatus.too_close:
+                            button = button.booking_too_close
+                            edit_keyboard_message(
+                                callback,
+                                button.reply.format(minutes=MIN_BOOKING_TIME),
+                                button.row_width,
+                                button.children,
+                                bot=bot,
+                            )
+                        case TimediffCheckStatus.passed:
+                            edit_keyboard_message(callback, **button.booking_passed, bot=bot)
+                        case TimediffCheckStatus.success:
+                            status = db.book_counseling(
+                                counselor_id=counselor_id,
+                                user_id=callback.message.chat.id,
+                                time=time,
+                            )
+                            button = button.success if status else button.too_slow
+                            edit_keyboard_message(callback, **button, bot=bot)
 
 
 def show_my_counseling(callback: types.CallbackQuery, button: DictConfig) -> None:
     booking = db.get_my_counseling(user_id=callback.message.chat.id)
     if booking:
-        name, description, time = booking
+        name, description, time, place = booking
         time = time.strftime("%H:%M")
         button = button.exists
-        reply = button.reply.format(name=name, time=time, description=description)
+        reply = button.reply.format(name=name, time=time, place=place, description=description)
         edit_keyboard_message(
             callback, reply=reply, row_width=button.row_width, children=button.children, bot=bot
         )
@@ -158,7 +168,7 @@ def show_my_counseling(callback: types.CallbackQuery, button: DictConfig) -> Non
 
 
 def cancel_counseling(callback: types.CallbackQuery, button: DictConfig) -> None:
-    *_, time = db.get_my_counseling(user_id=callback.message.chat.id)
+    *_, time, _ = db.get_my_counseling(user_id=callback.message.chat.id)
     if validate_timediff(time):
         reply = button.reply.success
         db.cancel_counseling(callback.message.chat.id)
@@ -288,7 +298,6 @@ def show_basic_button(callback: types.CallbackQuery, button: DictConfig) -> None
 
 @bot.callback_query_handler(func=lambda callback: callback.data)
 def check_callback_data(callback: types.CallbackQuery) -> None:
-    print(callback.data)
     static_callbacks_dict = {
         "menu": show_basic_button,
         "schedule": show_basic_button,
@@ -319,6 +328,8 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
             if match is not None:
                 func(callback, buttons[pattern], *match.groups())
                 break
+        else:
+            print("missed")
 
 
 @bot.message_handler(commands=["start"])

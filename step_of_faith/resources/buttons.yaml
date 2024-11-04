@@ -1,10 +1,10 @@
 "^menu$":
-  reply: "Меню:"
+  reply: "*Меню:*"
   row_width: 2
   children:
     - text: "Расписание"
       data: "schedule"
-    - text: "Душепопечение"
+    - text: "Встреча со служителем"
       data: "counseling"
     - text: "Семинары"
       data: "seminars"
@@ -14,7 +14,7 @@
       data: "church_schedule"
 
 "^schedule$":
-  reply: "Выберите день конференции:"
+  reply: "*Выберите день конференции*"
   row_width: 2
   children:
     - text: "Четверг"
@@ -25,7 +25,7 @@
       data: "menu"
 
 "^counseling$":
-  reply: "Запись к служителю"
+  reply: "*Запись к служителю*"
   row_width: 2
   children:
     - text: "Записаться"
@@ -36,9 +36,7 @@
       data: "menu"
 
 "^seminars$":
-  reply: |
-    Семинары - это время когда...
-    В этом году у вас будет возможность посетить *2* семинара (смотри расписание мероприятрия)
+  reply: "*Выберите семинар*"
   row_width: 2
   children:
     - text: "Семинар №1"
@@ -49,18 +47,25 @@
       data: "menu"
 
 "^subscribe$":
-  reply: "Мы в сети:"
+  reply: |
+    *Ссылки на соц. сети:*
+    🔹 Конференция "Шаг Веры" (вывести текст);
+    [Instagram](https://instagram.com/step.of.faithh) / [Telegram](https://t.me/stepoffaith)
+
+    🔹 Молодёжное служение "GraceYouth" (вывести текст):
+    [Instagram](https://www.instagram.com/grc__youth/) / [Telegram](https://t.me/minskgrace_youth) / [YouTube](https://www.youtube.com/@minskgraceyouth)
+
   row_width: 2
   children:
-    - text: "Telegram"
-      url: "https://t.me/stepoffaith"
-    - text: "Instagram"
-      url: "https://instagram.com/step.of.faithh"
+    # - text: "Telegram"
+    #   url: "https://t.me/stepoffaith"
+    # - text: "Instagram"
+    #   url: "https://instagram.com/step.of.faithh"
     - text: "Назад"
       data: "menu"
 
 "^counseling::options$":
-  reply: "Выберите служителя:"
+  reply: "*Выберите служителя:*"
   row_width: 2
   children:
     - text: "Назад"
@@ -70,6 +75,7 @@
   reply: |
     *{name}*
     {n} свободных окошек
+    Место: {place}
     {description}
   row_width: 1
   child_template: "🕓 {time}"
@@ -79,7 +85,7 @@
 
 "^counseling::options::(\\d+)::(\\d{1,2}:\\d{1,2})$":
   success:
-    reply: "Запись служителю произведена успешно произведена успешно"
+    reply: "Запись служителю произведена успешно"
     row_width: 1
     children:
       - text: "В меню"
@@ -123,8 +129,8 @@
 
 "^schedule::day::(\\d+)$":
   reply:
-    header: "Расписание:"
-    row_template: "\n🔸 {time}  {event}"
+    header: "*Расписание({day}):*"
+    row_template: "🔸 {time} - {event}"
   row_width: 1
   children:
     - text: "Назад"
@@ -133,8 +139,9 @@
 "^counseling::my$":
   exists:
     reply: |
-      {name} примет вас в {time}
-      {description}
+      Служитель: {name}
+      Время: {time}
+      Место: {place}
     row_width: 2
     children:
       - text: "Отменить запись"
@@ -151,7 +158,7 @@
 "^counseling::my::cancel$":
   reply: 
     success: "Запись отменена"
-    failure: "Нельзя отменить запись менее, чем за 10 минут до начала"
+    failure: "Нельзя отменить запись менее, чем за {minutes} минут до начала"
   row_width: 1
   children:
     - text: "В меню"
@@ -246,7 +253,7 @@
 
 "^church_schedule$":
   reply: |
-    Служения:
+    *Служения:*
     🔸 понедельник (19:00) - молитвенное служение;
     🔸 среда/четверг (19:00) - служение регионов;
     🔸 пятница (19:00) - молодёжное служение;
