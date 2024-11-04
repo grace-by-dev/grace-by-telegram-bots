@@ -1,9 +1,9 @@
 # sql functions
+import datetime
 import os
 
 from dotenv import load_dotenv
 import psycopg
-import datetime
 
 
 def get_connection() -> object:
@@ -149,14 +149,59 @@ class PostgreSQL:
             )
             conn.commit()
 
-    def get_seminars(self) -> list:
+    def get_seminars(self, seminar_number: int) -> list:
         with get_connection().cursor() as cur:
             return cur.execute(
                 """
-                SELECT id, title 
-                FROM seminars
-                ORDER BY id;
-                """
+                WITH seminar_counts AS (
+                    SELECT 
+                        s.id AS seminar_id, 
+                        s.title, 
+                        COUNT(se.user_id) AS number_of_people, 
+                        rank() OVER (
+                        ORDER BY 
+                            COUNT(se.user_id) DESC
+                        ) AS rn 
+                    FROM 
+                        seminars s 
+                        LEFT JOIN seminar_enrollement se ON s.id = se.seminar_id 
+                    WHERE 
+                        se.seminar_number = %s 
+                        or se.seminar_number is null 
+                    GROUP BY 
+                        s.id, 
+                        s.title 
+                    ORDER BY 
+                        COUNT(se.user_id) DESC
+                ), 
+                room_capacities AS (
+                    SELECT 
+                        room, 
+                        capacity, 
+                        ROW_NUMBER() OVER (
+                        ORDER BY 
+                            capacity DESC
+                        ) AS rn 
+                    FROM 
+                        spaces
+                ), 
+                merged_seminars AS (
+                    SELECT 
+                        seminar_id, 
+                        title 
+                    FROM 
+                        seminar_counts AS s 
+                        JOIN room_capacities AS r ON s.rn = r.rn 
+                    WHERE 
+                        s.number_of_people < r.capacity
+                ) 
+                select 
+                * 
+                from 
+                merged_seminars
+
+                """,
+                (seminar_number,),
             ).fetchall()
 
     def get_seminar_info(self, seminar_id: int) -> list:
@@ -170,8 +215,7 @@ class PostgreSQL:
                 (seminar_id,),
             ).fetchone()
 
-
-    def get_my_seminars(self, user_id: int) -> list:
+    def get_my_seminar(self, seminar_number: int, user_id: int) -> list:
         with get_connection().cursor() as cur:
             return cur.execute(
                 """
@@ -179,13 +223,13 @@ class PostgreSQL:
                 FROM seminar_enrollement enrollement
                 LEFT JOIN seminars
                     ON enrollement.seminar_id = seminars.id
-                WHERE user_id = %s
+                WHERE user_id = %s and seminar_number = %s
                 ORDER BY seminar_number; 
                 """,
-                (user_id,),
-            ).fetchall()
-        
-    def get_seminar_start_time(self, seminar_number: int) -> datetime.datetime:
+                (user_id, seminar_number),
+            ).fetchone()
+
+    def get_seminar_start_time(self, seminar_number: int) -> datetime.time:
         with get_connection().cursor() as cur:
             data = cur.execute(
                 """
@@ -211,8 +255,7 @@ class PostgreSQL:
             )
             conn.commit()
 
-
-    def enroll_for_seminar_test(self, seminar_number: int, user_id: int, seminar_id: int) -> bool:
+    def enroll_for_seminar(self, seminar_number: int, user_id: int, seminar_id: int) -> bool:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
@@ -220,7 +263,7 @@ class PostgreSQL:
                     SELECT 
                         s.id AS seminar_id,
                         COUNT(se.user_id) AS number_of_people,
-                        ROW_NUMBER() OVER (ORDER BY COUNT(se.user_id) DESC) AS rn
+                        RANK() OVER (ORDER BY COUNT(se.user_id) DESC) AS rn
                     FROM 
                         seminars s
                     LEFT JOIN seminar_enrollement se 
@@ -251,8 +294,6 @@ class PostgreSQL:
                 (seminar_number, seminar_id, user_id, seminar_number),
             )
             return cur.rowcount > 0
-
-
 
     def get_seminar_rooms(self, seminar_number: int) -> object:
         with get_connection() as conn, conn.cursor() as cur:
@@ -295,14 +336,10 @@ class PostgreSQL:
                     capacity
                 FROM merged_seminars;
                 """,
-                (seminar_number, ),
+                (seminar_number,),
             )
-            result =  {
-                 row[0]: {
-                    "number_of_people": row[1],
-                    "room": row[2],
-                    "capacity": row[3]
-                }
+            result = {
+                row[0]: {"number_of_people": row[1], "room": row[2], "capacity": row[3]}
                 for row in cur.fetchall()
             }
             return result

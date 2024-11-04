@@ -41,10 +41,10 @@
     В этом году у вас будет возможность посетить *2* семинара (смотри расписание мероприятрия)
   row_width: 2
   children:
-    - text: "Записаться"
-      data: "seminars::options"
-    - text: "Мои семинары"
-      data: "seminars::my"
+    - text: "Семинар №1"
+      data: "seminars::1"
+    - text: "Суминар №2"
+      data: "seminars::2"
     - text: "Назад"
       data: "menu"
 
@@ -79,27 +79,41 @@
 
 "^counseling::options::(\\d+)::(\\d{1,2}:\\d{1,2})$":
   success:
-    reply: "Запись произведена успешно"
+    reply: "Запись служителю произведена успешно произведена успешно"
     row_width: 1
     children:
       - text: "В меню"
         data: "menu"
-  time_failure:
-    reply: "Нельзя запиcаться на душепопечение менее, чем за 10 минут до начала"
+  too_close:
+    reply: "Нельзя запиcаться на встречу менее чем за {minutes} минут до начала"
     row_width: 1
     children:
       - text: Список служителей
         data: "counseling::options"
       - text: "В меню"
         data: "menu"
-  last_counseling_time_failure:
-    reply: "Не получилось записаться, так как вы уже записаны на душепопечение, до которого осталось менее 10 минут"
+  passed:
+    reply: "Эта встреча уже прошла"
+    row_width: 1
+    children:
+      - text: Список служителей
+        data: "counseling::options"
+      - text: "В меню"
+        data: "menu"
+  booking_too_close:
+    reply: "Не получилось записаться, так как вы уже записаны на встречу со служителем, до которой меньше {minutes} минут"
     row_width: 1
     children:
       - text: "В меню"
         data: "menu"
-  failure: 
-    reply: "Кто-то тебя опередил, попробуй другое время"
+  booking_passed:
+    reply: "Не получилось записаться, так как вы уже встречались со служителем"
+    row_width: 1
+    children:
+      - text: "В меню"
+        data: "menu"
+  too_slow: 
+    reply: "Кто-то вас опередил, попробуйте другое время"
     row_width: 2
     children:
       - text: Список служителей
@@ -143,90 +157,87 @@
     - text: "В меню"
       data: "menu"
 
-"^seminars::options$":
-  reply: "Выберите семинар:"
+"^seminars::(\\d+)$":
+  reply: "Какой-то текст"
+  row_width: 2
+  children:
+    - text: "Записаться"
+      data: "seminars::{seminar_number}::options"
+    - text: "Моя запись"
+      data: "seminars::{seminar_number}::my"
+    - text: "Назад"
+      data: "seminars"
+
+"^seminars::(\\d+)::options$":
+  reply: "Выберите тему:"
   row_width: 2
   children:
     - text: "Назад"
       data: "seminars"
 
-"^seminars::options::(\\d+)$":
-  reply: "*{title}*\n{description}"
+"^seminars::(\\d+)::options::(\\d+)$":
+  reply: "*{title}*\n{description}\n"
   row_width: 2
   children:
     - text: "Записаться"
-      data: "seminars::options::{seminar_id}::enroll"
+      data: "seminars::{seminar_number}::options::{seminar_id}::enroll"
     - text: "Назад"
-      data: "seminars::options"
+      data: "seminars::{seminar_number}::options"
 
-"^seminars::options::(\\d+)::enroll$":
-  reply: "Выберите номер семинара"
-  row_width: 2
-  children:
-    - text: "Первый"
-      data: "seminars::options::{seminar_id}::enroll::1"
-    - text: "Второй"
-      data: "seminars::options::{seminar_id}::enroll::2"
-    - text: "Назад"
-      data: "seminars::options::{seminar_id}"
-
-"^seminars::options::(\\d+)::enroll::(\\d)$":
+"^seminars::(\\d+)::options::(\\d+)::enroll$":
   success:
-    reply: "Запись произведена успешно"
+    reply: "Запись на семинар произведена успешно"
     row_width: 2
     children:
-      - text: "К семинарам"
-        data: "seminars::options"
       - text: "В меню"
         data: "menu"
   room_failure:
     reply: "На данный семинар не осталось свободных мест"
     row_width: 2
     children:
-      - text: "К семинарам"
-        data: "seminars::options"
+      - text: "Назад к выбору"
+        data: "seminars::{seminar_number}::options"
       - text: "В меню"
         data: "menu"
-  time_failure:
-    reply: "Нельзя записаться на семинар менее, чем за 10 минут до начала"
+  too_close:
+    reply: "Нельзя записаться на семинар менее чем за {minutes} минут до начала"
     row_width: 2
     children:
-      - text: "К семинарам"
-        data: "seminars::options"
+      - text: "В меню"
+        data: "menu"
+  passed:
+    reply: "Семинар прошел"
+    row_width: 2
+    children:
       - text: "В меню"
         data: "menu"
 
-
-"^seminars::my$":
-  reply: "Мои семинары:"
-  row_width: 2
-  children:
-    - text: "Семинар №1"
-      data: "seminars::my::1"
-    - text: "Семинар №2"
-      data: "seminars::my::2"
-    - text: "Назад"
-      data: "seminars"
-
-"^seminars::my::(\\d{1,2})$":
+"^seminars::(\\d+)::my$":
   reply: 
-    template: "{title}\n\n{description}"
+    exists: "{title}\n\n{description}"
     missing: "Вы не записались на этот семинар"
   row_width: 2
   children:
     - text: "Отписаться"
+      data: "seminars::{seminar_number}::my::cancel"
     - text: "Назад"
-      data: "seminars::my"
+      data: "seminars::{seminar_number}"
 
-"^seminars::my::(\\d{1,2})::cancel$":
+"^seminars::(\\d+)::my::cancel$":
   success:
     reply: "Вы отписались от семинара"
     row_width: 1
     children:
       - text: "В меню"
         data: "menu"
-  time_failure:
-    reply: "Нельзя отписаться от семинара менее, чем за 10 минут до начала"
+  too_close:
+    reply: "Нельзя отписаться от семинара менее, чем за {minutes} минут до начала"
+    row_width: 1
+    children:
+      - text: "В меню"
+        data: "menu"
+  passed:
+    reply: "Семинар уже прошел"
     row_width: 1
     children:
       - text: "В меню"

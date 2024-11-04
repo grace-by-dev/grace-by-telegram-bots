@@ -1,11 +1,12 @@
+from datetime import datetime
+from enum import Enum
 import os
 import re
-from datetime import datetime
 
-import pytz
 from dotenv import load_dotenv
-from omegaconf import OmegaConf
 from omegaconf import DictConfig
+from omegaconf import OmegaConf
+import pytz
 import telebot
 from telebot import types
 
@@ -14,6 +15,7 @@ from common.src.utils import get_logger
 from common.src.utils import send_keyboard_message
 from step_of_faith.src.postgres_sql import PostgreSQL
 from step_of_faith.src.user_utils import UserUtils
+
 
 env_file = "step_of_faith/.env"
 yaml_file = "step_of_faith/resources/replies.yaml"
@@ -28,23 +30,37 @@ token = os.getenv("BOT_TOKEN")
 
 bot = telebot.TeleBot(token)
 
-timezone = pytz.timezone(os.getenv("TIMEZONE"))
+TZ = pytz.timezone(os.getenv("TIMEZONE"))
 
 logger = get_logger(__name__)
 
-sql = PostgreSQL()
+db = PostgreSQL()
 user_utils = UserUtils(env_file)
 
-min_booking_time = int(os.getenv("MIN_BOOKING_TIME"))
+MIN_BOOKING_TIME = int(os.getenv("MIN_BOOKING_TIME"))
 
 
-def is_time_valid_for_booking_and_cancellation(time: datetime) -> bool:
-    now = datetime.now(timezone)
-    time_diff = ((time.hour-now.hour) * 60 + time.minute - now.minute) * 60 + time.second - now.second
-    return time_diff > min_booking_time
+class TimediffCheckStatus(Enum):
+    success = 1
+    passed = 2
+    too_close = 3
+
+
+def validate_timediff(time: datetime) -> bool:
+    now = datetime.now(TZ)
+    timediff = (
+        ((time.hour - now.hour) * 60 + time.minute - now.minute) * 60 + time.second - now.second
+    )
+    if timediff < 0:
+        return TimediffCheckStatus.passed
+    elif timediff < MIN_BOOKING_TIME:
+        return TimediffCheckStatus.too_close
+    else:
+        return TimediffCheckStatus.success
+
 
 def show_schedule_day(callback: types.CallbackQuery, button: DictConfig, day: int) -> None:
-    schedule = sql.get_schedule(day)
+    schedule = db.get_schedule(day)
     schedule = [
         button.reply.row_template.format(time=time, event=event) for (time, event) in schedule
     ]
@@ -55,7 +71,7 @@ def show_schedule_day(callback: types.CallbackQuery, button: DictConfig, day: in
 
 
 def show_counselors(callback: types.CallbackQuery, button: DictConfig) -> None:
-    counselors = sql.get_counselors()
+    counselors = db.get_counselors()
     children = []
     for counselor_id, name in counselors:
         children.append({"text": name, "data": f"{callback.data}::{counselor_id}"})
@@ -68,14 +84,17 @@ def show_counselors(callback: types.CallbackQuery, button: DictConfig) -> None:
 def show_particular_counselor(
     callback: types.CallbackQuery, button: DictConfig, counselor_id: int
 ) -> None:
-    name, description = sql.get_counselor_info(counselor_id)
-    timeslots = sql.get_counselor_timeslots(counselor_id)
+    name, description = db.get_counselor_info(counselor_id)
+    timeslots = db.get_counselor_timeslots(counselor_id)
     children = []
     for (slot,) in timeslots:
-        if is_time_valid_for_booking_and_cancellation(slot):
+        if validate_timediff(slot) == TimediffCheckStatus.success:
             time = slot.strftime("%H:%M")
             children.append(
-                {"text": button.child_template.format(time=time), "data": f"{callback.data}::{time}"}
+                {
+                    "text": button.child_template.format(time=time),
+                    "data": f"{callback.data}::{time}",
+                }
             )
     reply = button.reply.format(name=name, n=len(children), description=description)
     children.extend(button.children)
@@ -88,27 +107,44 @@ def book_counseling(
     callback: types.CallbackQuery, button: DictConfig, counselor_id: int, time: str
 ) -> None:
     time = datetime.strptime(time, "%H:%M").time()
-    if not is_time_valid_for_booking_and_cancellation(time):
-        edit_keyboard_message(callback, **button.time_failure, bot=bot)
-        return
-    
-    booking = sql.get_my_counseling(user_id=callback.message.chat.id)
-    if booking:
-        name, description, old_time = booking
-        if not is_time_valid_for_booking_and_cancellation(old_time):
-            edit_keyboard_message(callback, **button.last_counseling_time_failure, bot=bot)
-            return
-
-    status = sql.book_counseling(
-        counselor_id=counselor_id, user_id=callback.message.chat.id, time=time
-    )
-    
-    button = button.success if status else button.failure
-    edit_keyboard_message(callback, **button, bot=bot)
+    match validate_timediff(time):
+        case TimediffCheckStatus.too_close:
+            button = button.too_close
+            edit_keyboard_message(
+                callback,
+                button.reply.format(minutes=MIN_BOOKING_TIME),
+                button.row_width,
+                button.children,
+                bot=bot,
+            )
+        case TimediffCheckStatus.passed:
+            edit_keyboard_message(callback, **button.passed, bot=bot)
+        case TimediffCheckStatus.success:
+            booking = db.get_my_counseling(user_id=callback.message.chat.id)
+            if booking:
+                *_, old_time = booking
+                match validate_timediff(old_time):
+                    case TimediffCheckStatus.too_close:
+                        button = button.booking_too_close
+                        edit_keyboard_message(
+                            callback,
+                            button.reply.format(minutes=MIN_BOOKING_TIME),
+                            button.row_width,
+                            button.children,
+                            bot=bot,
+                        )
+                    case TimediffCheckStatus.passed:
+                        edit_keyboard_message(callback, **button.booking_passed, bot=bot)
+                    case TimediffCheckStatus.success:
+                        status = db.book_counseling(
+                            counselor_id=counselor_id, user_id=callback.message.chat.id, time=time
+                        )
+                        button = button.success if status else button.too_slow
+                        edit_keyboard_message(callback, **button, bot=bot)
 
 
 def show_my_counseling(callback: types.CallbackQuery, button: DictConfig) -> None:
-    booking = sql.get_my_counseling(user_id=callback.message.chat.id)
+    booking = db.get_my_counseling(user_id=callback.message.chat.id)
     if booking:
         name, description, time = booking
         time = time.strftime("%H:%M")
@@ -122,16 +158,38 @@ def show_my_counseling(callback: types.CallbackQuery, button: DictConfig) -> Non
 
 
 def cancel_counseling(callback: types.CallbackQuery, button: DictConfig) -> None:
-    *_, time = sql.get_my_counseling(user_id=callback.message.chat.id)
-    reply = button.reply.failure
-    if is_time_valid_for_booking_and_cancellation(time):
+    *_, time = db.get_my_counseling(user_id=callback.message.chat.id)
+    if validate_timediff(time):
         reply = button.reply.success
-        sql.cancel_counseling(callback.message.chat.id)
-    edit_keyboard_message(callback, children=button.children, reply=reply, row_width=button.row_width, bot=bot)
+        db.cancel_counseling(callback.message.chat.id)
+    else:
+        reply = button.reply.failure
+    edit_keyboard_message(
+        callback, children=button.children, reply=reply, row_width=button.row_width, bot=bot
+    )
 
 
-def show_seminars(callback: types.CallbackQuery, button: DictConfig) -> None:
-    seminars = sql.get_seminars()
+def choose_seminar_action(
+    callback: types.CallbackQuery, button: DictConfig, seminar_number: int
+) -> None:
+    enroll, check_enrollement, back = button.children
+    children = [
+        {"text": enroll.text, "data": enroll.data.format(seminar_number=seminar_number)},
+        {
+            "text": check_enrollement.text,
+            "data": check_enrollement.data.format(seminar_number=seminar_number),
+        },
+        back,
+    ]
+    edit_keyboard_message(
+        callback, reply=button.reply, row_width=button.row_width, children=children, bot=bot
+    )
+
+
+def show_seminar_options(
+    callback: types.CallbackQuery, button: DictConfig, seminar_number: int
+) -> None:
+    seminars = db.get_seminars(seminar_number)
     children = []
     for seminar_id, title in seminars:
         children.append({"text": title, "data": f"{callback.data}::{seminar_id}"})
@@ -141,24 +199,18 @@ def show_seminars(callback: types.CallbackQuery, button: DictConfig) -> None:
     )
 
 
-def show_particular_seminar(callback: types.CallbackQuery, button: DictConfig, seminar_id: int) -> None:
+def show_particular_seminar(
+    callback: types.CallbackQuery, button: DictConfig, seminar_number: int, seminar_id: int
+) -> None:
     enroll, back = button.children
-    title, description = sql.get_seminar_info(seminar_id)
-    reply = button.reply.format(title=title, description=description)
-    children = [{"text": enroll.text, "data": enroll.data.format(seminar_id=seminar_id)}, back]
-    edit_keyboard_message(
-        callback, reply=reply, row_width=button.row_width, children=children, bot=bot
-    )
-
-
-def choose_seminar_number(callback: types.CallbackQuery, button: DictConfig, seminar_id: int) -> None:
-    first, second, back = button.children
-    title, description = sql.get_seminar_info(seminar_id)
+    title, description = db.get_seminar_info(seminar_id)
     reply = button.reply.format(title=title, description=description)
     children = [
-        {"text": first.text, "data": first.data.format(seminar_id=seminar_id)},
-        {"text": second.text, "data": second.data.format(seminar_id=seminar_id)},
-        back,
+        {
+            "text": enroll.text,
+            "data": enroll.data.format(seminar_id=seminar_id, seminar_number=seminar_number),
+        },
+        {"text": back.text, "data": back.data.format(seminar_number=seminar_number)},
     ]
     edit_keyboard_message(
         callback, reply=reply, row_width=button.row_width, children=children, bot=bot
@@ -166,46 +218,68 @@ def choose_seminar_number(callback: types.CallbackQuery, button: DictConfig, sem
 
 
 def enroll_for_seminar(
-    callback: types.CallbackQuery, button: DictConfig, seminar_id: int, seminar_number: int
+    callback: types.CallbackQuery, button: DictConfig, seminar_number: int, seminar_id: int
 ) -> None:
     seminar_id = int(seminar_id)
-    time = sql.get_seminar_start_time(seminar_number)
-    if not is_time_valid_for_booking_and_cancellation(time):
-        edit_keyboard_message(callback, **button.time_failure, bot=bot)
-        return
-    status = sql.enroll_for_seminar_test(
-        seminar_id=seminar_id, user_id=callback.message.chat.id, seminar_number=seminar_number
+    match validate_timediff(db.get_seminar_start_time(seminar_number)):
+        case TimediffCheckStatus.too_close:
+            button = button.too_close
+            edit_keyboard_message(
+                callback,
+                button.reply.format(minutes=MIN_BOOKING_TIME),
+                button.row_width,
+                button.children,
+                bot=bot,
+            )
+        case TimediffCheckStatus.passed:
+            edit_keyboard_message(callback, **button.passed, bot=bot)
+        case TimediffCheckStatus.success:
+            status = db.enroll_for_seminar(
+                seminar_id=seminar_id,
+                user_id=callback.message.chat.id,
+                seminar_number=seminar_number,
+            )
+            button = button.success if status else button.room_failure
+            edit_keyboard_message(callback, **button, bot=bot)
+
+
+def show_my_seminar(callback: types.CallbackQuery, button: DictConfig, seminar_number: int) -> None:
+    title, description = db.get_my_seminar(
+        seminar_number,
+        callback.message.chat.id,
     )
-    buttons = button.success if status else button.room_failure
-    edit_keyboard_message(callback, **buttons, bot=bot)
-
-
-def show_my_particular_seminar(
-    callback: types.CallbackQuery, button: DictConfig, seminar_num: int
-) -> None:
-    seminars = sql.get_my_seminars(callback.message.chat.id)
-    (title, description) = seminars[int(seminar_num) - 1]
-    reply = button.reply.missing
     cancel, back = button.children
     children = []
     if title:
-        reply = button.reply.template.format(title=title, description=description)
-        children.append({"text": cancel.text, "data": f"{callback.data}::cancel"})
-    children.append(back)
+        reply = button.reply.exists.format(title=title, description=description)
+        children.append(
+            {"text": cancel.text, "data": cancel.data.format(seminar_number=seminar_number)}
+        )
+    else:
+        reply = button.reply.missing
+    children.append({"text": back.text, "data": back.data.format(seminar_number=seminar_number)})
     edit_keyboard_message(
         callback, reply=reply, children=children, row_width=button.row_width, bot=bot
     )
 
 
 def cancel_my_seminar(callback: types.CallbackQuery, button: DictConfig, seminar_num: int) -> None:
-    time = sql.get_seminar_start_time(seminar_num)
-    if not is_time_valid_for_booking_and_cancellation(time):
-        edit_keyboard_message(callback, **button.time_failure, bot=bot)
-        return
-    sql.cancel_my_seminar(callback.message.chat.id, seminar_num)
-    edit_keyboard_message(
-        callback, **button.success, bot=bot
-    )
+    time = db.get_seminar_start_time(seminar_num)
+    match validate_timediff(time):
+        case TimediffCheckStatus.too_close:
+            button = button.too_close
+            edit_keyboard_message(
+                callback,
+                button.reply.format(minutes=MIN_BOOKING_TIME),
+                button.row_width,
+                button.children,
+                bot=bot,
+            )
+        case TimediffCheckStatus.passed:
+            edit_keyboard_message(callback, **button.passed, bot=bot)
+        case TimediffCheckStatus.success:
+            db.cancel_my_seminar(callback.message.chat.id, seminar_num)
+            edit_keyboard_message(callback, **button.success, bot=bot)
 
 
 def show_basic_button(callback: types.CallbackQuery, button: DictConfig) -> None:
@@ -214,6 +288,7 @@ def show_basic_button(callback: types.CallbackQuery, button: DictConfig) -> None
 
 @bot.callback_query_handler(func=lambda callback: callback.data)
 def check_callback_data(callback: types.CallbackQuery) -> None:
+    print(callback.data)
     static_callbacks_dict = {
         "menu": show_basic_button,
         "schedule": show_basic_button,
@@ -221,11 +296,9 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
         "seminars": show_basic_button,
         "subscribe": show_basic_button,
         "church_schedule": show_basic_button,
-        "seminars::my": show_basic_button,
         "counseling::options": show_counselors,
         "counseling::my": show_my_counseling,
         "counseling::my::cancel": cancel_counseling,
-        "seminars::options": show_seminars,
     }
     if callback.data in static_callbacks_dict:
         static_callbacks_dict[callback.data](callback, buttons[f"^{callback.data}$"])
@@ -234,11 +307,12 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
             ("^schedule::day::(\\d+)$", show_schedule_day),
             ("^counseling::options::(\\d+)$", show_particular_counselor),
             ("^counseling::options::(\\d+)::(\\d{1,2}:\\d{1,2})$", book_counseling),
-            ("^seminars::options::(\\d+)$", show_particular_seminar),
-            ("^seminars::options::(\\d+)::enroll$", choose_seminar_number),
-            ("^seminars::options::(\\d+)::enroll::(\\d)$", enroll_for_seminar),
-            ("^seminars::my::(\\d{1,2})$", show_my_particular_seminar),
-            ("^seminars::my::(\\d{1,2})::cancel$", cancel_my_seminar),
+            ("^seminars::(\\d+)$", choose_seminar_action),
+            ("^seminars::(\\d+)::options$", show_seminar_options),
+            ("^seminars::(\\d+)::options::(\\d+)$", show_particular_seminar),
+            ("^seminars::(\\d+)::options::(\\d+)::enroll$", enroll_for_seminar),
+            ("^seminars::(\\d+)::my$", show_my_seminar),
+            ("^seminars::(\\d+)::my::cancel$", cancel_my_seminar),
         ]
         for pattern, func in dinamic_callback_patterns:
             match = re.search(pattern, callback.data)
@@ -249,9 +323,9 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
 
 @bot.message_handler(commands=["start"])
 def menu(message: types.Message) -> None:
-    if not sql.check_user_id(message.from_user.id):
-        sql.add_to_database(message.from_user.id)
-    current = sql.is_banned(message.from_user.id)
+    if not db.check_user_id(message.from_user.id):
+        db.add_to_database(message.from_user.id)
+    current = db.is_banned(message.from_user.id)
     if not current:
         send_keyboard_message(message, **replies["welcome"], bot=bot)
     else:
