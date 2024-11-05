@@ -81,6 +81,7 @@ def send_keyboard_message(
         message.chat.id,
         reply,
         reply_markup=create_keyboard(row_width, children),
+        parse_mode="Markdown",
     )
 
 

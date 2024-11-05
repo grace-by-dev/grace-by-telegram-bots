@@ -337,12 +337,8 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
 @bot.message_handler(commands=["start"])
 def menu(message: types.Message) -> None:
     if not db.check_user_id(message.from_user.id):
-        db.add_to_database(message.from_user.id)
-    current = db.is_banned(message.from_user.id)
-    if not current:
-        send_keyboard_message(message, **replies["welcome"], bot=bot)
-    else:
-        bot.send_message(message.from_user.id, replies["ban"]["banned"])
+        db.add_to_database(message.from_user.id, message.from_user.username)
+    send_keyboard_message(message, **buttons["^menu$"], bot=bot)
 
 
 if __name__ == "__main__":

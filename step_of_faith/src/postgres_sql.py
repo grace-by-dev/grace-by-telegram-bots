@@ -20,13 +20,13 @@ class PostgreSQL:
     def __init__(self) -> None:
         self.read = load_dotenv()
 
-    def add_to_database(self, user_id: int) -> None:
+    def add_to_database(self, user_id: int, username: str) -> None:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO users VALUES (%(user_id)s);
+                INSERT INTO users VALUES (%(user_id)s, %(username)s);
                 """,
-                {"user_id": user_id},
+                {"user_id": user_id, "username": username},
             )
             cur.execute(
                 """
@@ -42,25 +42,6 @@ class PostgreSQL:
         with get_connection().cursor() as cur:
             data = cur.execute("SELECT id FROM users WHERE id = %s", (user_id,)).fetchone()
         return data is not None
-
-    def is_banned(self, user_id: int) -> bool:
-        with get_connection().cursor() as cur:
-            data = cur.execute("SELECT ban FROM users WHERE id = %s", (user_id,)).fetchone()
-        if data is not None:
-            return data[0]
-
-    def is_admin(self, user_id: int) -> bool:
-        with get_connection().cursor() as cur:
-            data = cur.execute("SELECT admin FROM users WHERE id = %s", (user_id,)).fetchone()
-        if data is not None:
-            return data[0]
-
-    def write_message(self, message_type: str, message: str) -> None:
-        with get_connection() as conn, conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO feedbacks (type, data) VALUES (%s, %s)", (message_type, message)
-            )
-            conn.commit()
 
     def get_schedule(self, day: int) -> list:
         with get_connection().cursor() as cur:
