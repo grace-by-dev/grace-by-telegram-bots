@@ -86,7 +86,7 @@ def show_counselors(callback: types.CallbackQuery, button: DictConfig) -> None:
 def show_particular_counselor(
     callback: types.CallbackQuery, button: DictConfig, counselor_id: int
 ) -> None:
-    name, description, place = db.get_counselor_info(counselor_id)
+    name, place = db.get_counselor_info(counselor_id)
     timeslots = db.get_counselor_timeslots(counselor_id)
     children = []
     for (slot,) in timeslots:
@@ -98,7 +98,7 @@ def show_particular_counselor(
                     "data": f"{callback.data}::{time}",
                 }
             )
-    reply = button.reply.format(name=name, n=len(children), place=place, description=description)
+    reply = button.reply.format(name=name, n=len(children), place=place)
     children.extend(button.children)
     edit_keyboard_message(
         callback, reply=reply, row_width=button.row_width, children=children, bot=bot
@@ -156,10 +156,10 @@ def book_counseling(
 def show_my_counseling(callback: types.CallbackQuery, button: DictConfig) -> None:
     booking = db.get_my_counseling(user_id=callback.message.chat.id)
     if booking:
-        name, description, time, place = booking
+        name, time, place = booking
         time = time.strftime("%H:%M")
         button = button.exists
-        reply = button.reply.format(name=name, time=time, place=place, description=description)
+        reply = button.reply.format(name=name, time=time, place=place)
         edit_keyboard_message(
             callback, reply=reply, row_width=button.row_width, children=button.children, bot=bot
         )
@@ -168,7 +168,7 @@ def show_my_counseling(callback: types.CallbackQuery, button: DictConfig) -> Non
 
 
 def cancel_counseling(callback: types.CallbackQuery, button: DictConfig) -> None:
-    *_, time, _ = db.get_my_counseling(user_id=callback.message.chat.id)
+    _, time, _ = db.get_my_counseling(user_id=callback.message.chat.id)
     if validate_timediff(time):
         reply = button.reply.success
         db.cancel_counseling(callback.message.chat.id)
@@ -182,6 +182,7 @@ def cancel_counseling(callback: types.CallbackQuery, button: DictConfig) -> None
 def choose_seminar_action(
     callback: types.CallbackQuery, button: DictConfig, seminar_number: int
 ) -> None:
+    reply = button.first if seminar_number == "1" else button.second
     enroll, check_enrollement, back = button.children
     children = [
         {"text": enroll.text, "data": enroll.data.format(seminar_number=seminar_number)},
@@ -192,7 +193,7 @@ def choose_seminar_action(
         back,
     ]
     edit_keyboard_message(
-        callback, reply=button.reply, row_width=button.row_width, children=children, bot=bot
+        callback, reply=reply, row_width=button.row_width, children=children, bot=bot
     )
 
 
@@ -201,9 +202,10 @@ def show_seminar_options(
 ) -> None:
     seminars = db.get_seminars(seminar_number)
     children = []
+    back = button.children[0]
     for seminar_id, title in seminars:
         children.append({"text": title, "data": f"{callback.data}::{seminar_id}"})
-    children.extend(button.children)
+    children.append({"text": back.text, "data": back.data.format(seminar_number=seminar_number)})
     edit_keyboard_message(
         callback, reply=button.reply, row_width=button.row_width, children=children, bot=bot
     )
@@ -256,19 +258,23 @@ def enroll_for_seminar(
 
 
 def show_my_seminar(callback: types.CallbackQuery, button: DictConfig, seminar_number: int) -> None:
-    title, description = db.get_my_seminar(
+    title, description, speaker = db.get_my_seminar(
         seminar_number,
         callback.message.chat.id,
     )
     cancel, back = button.children
     children = []
     if title:
-        reply = button.reply.exists.format(title=title, description=description)
+        reply = button.reply.exists.format(
+            title=title, description=description.replace("<endl>", "\n"), speaker=speaker
+        )
         children.append(
             {"text": cancel.text, "data": cancel.data.format(seminar_number=seminar_number)}
         )
     else:
-        reply = button.reply.missing
+        reply = button.reply.missing.format(
+            number_text="первый" if seminar_number == "1" else "второй"
+        )
     children.append({"text": back.text, "data": back.data.format(seminar_number=seminar_number)})
     edit_keyboard_message(
         callback, reply=reply, children=children, row_width=button.row_width, bot=bot

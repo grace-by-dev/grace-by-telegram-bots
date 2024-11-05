@@ -4,7 +4,7 @@
   children:
     - text: "Расписание"
       data: "schedule"
-    - text: "Встреча со служителем"
+    - text: "Душепопечение"
       data: "counseling"
     - text: "Семинары"
       data: "seminars"
@@ -36,12 +36,12 @@
       data: "menu"
 
 "^seminars$":
-  reply: "*Выберите семинар*"
+  reply: "*Выберите поток семинаров*"
   row_width: 2
   children:
-    - text: "Семинар №1"
+    - text: "Первый"
       data: "seminars::1"
-    - text: "Суминар №2"
+    - text: "Второй"
       data: "seminars::2"
     - text: "Назад"
       data: "menu"
@@ -49,10 +49,10 @@
 "^subscribe$":
   reply: |
     *Ссылки на соц. сети:*
-    🔹 Конференция "Шаг Веры" (вывести текст);
+    🔹 Конференция "Шаг Веры":
     [Instagram](https://instagram.com/step.of.faithh) / [Telegram](https://t.me/stepoffaith)
 
-    🔹 Молодёжное служение "GraceYouth" (вывести текст):
+    🔹 Молодёжное служение "GraceYouth":
     [Instagram](https://www.instagram.com/grc__youth/) / [Telegram](https://t.me/minskgrace_youth) / [YouTube](https://www.youtube.com/@minskgraceyouth)
 
   row_width: 2
@@ -72,7 +72,6 @@
     *{name}*
     {n} свободных окошек
     Место: {place}
-    {description}
   row_width: 1
   child_template: "🕓 {time}"
   children:
@@ -125,7 +124,7 @@
 
 "^schedule::day::(\\d+)$":
   reply:
-    header: "*Расписание({day}):*"
+    header: "*Расписание ({day}):*"
     row_template: "🔸 {time} - {event}"
   row_width: 1
   children:
@@ -135,7 +134,7 @@
 "^counseling::my$":
   exists:
     reply: |
-      Служитель: {name}
+      Служитель: *{name}*
       Время: {time}
       Место: {place}
     row_width: 2
@@ -145,7 +144,7 @@
       - text: "Назад"
         data: "counseling"
   missing:
-    reply: "Вы не записаны на душепопечение"
+    reply: "У вас отсутствует запись встречи со служителем"
     row_width: 1
     children:
       - text: "Назад"
@@ -161,7 +160,8 @@
       data: "menu"
 
 "^seminars::(\\d+)$":
-  reply: "Какой-то текст"
+  first: "Первый поток семинаров (15:00-16:00)"
+  second: "Второй поток семинаров (16:00-17:00)"
   row_width: 2
   children:
     - text: "Записаться"
@@ -172,17 +172,18 @@
       data: "seminars"
 
 "^seminars::(\\d+)::options$":
-  reply: "Выберите тему:"
+  reply: "*Выберите доступный семинар:*"
   row_width: 1
   children:
     - text: "Назад"
-      data: "seminars"
+      data: "seminars::{seminar_number}"
 
 "^seminars::(\\d+)::options::(\\d+)$":
   reply: |
-    *«{title}»*
+    Тема: *«{title}»*
     Спикер: *{speaker}*
-    Описание / тезисы / вопросы:
+
+    Тезисы семинара:
     {description}
   row_width: 2
   children:
@@ -221,8 +222,13 @@
 
 "^seminars::(\\d+)::my$":
   reply: 
-    exists: "{title}\n\n{description}"
-    missing: "Вы не записались на этот семинар"
+    exists: |
+      Тема: *«{title}»*
+      Спикер: *{speaker}*
+
+      Тезисы семинара:
+      {description}
+    missing: "Вы пока не записаны на {number_text} поток семинаров"
   row_width: 2
   children:
     - text: "Отписаться"
