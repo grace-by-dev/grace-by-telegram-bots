@@ -213,8 +213,10 @@ def show_particular_seminar(
     callback: types.CallbackQuery, button: DictConfig, seminar_number: int, seminar_id: int
 ) -> None:
     enroll, back = button.children
-    title, description = db.get_seminar_info(seminar_id)
-    reply = button.reply.format(title=title, description=description)
+    title, description, speaker = db.get_seminar_info(seminar_id)
+    reply = button.reply.format(
+        title=title, speaker=speaker, description=description.replace("<endl>", "\n")
+    )
     children = [
         {
             "text": enroll.text,

@@ -199,7 +199,7 @@ class PostgreSQL:
                 * 
                 from 
                 merged_seminars
-
+                order by seminar_id
                 """,
                 (seminar_number,),
             ).fetchall()
@@ -208,7 +208,7 @@ class PostgreSQL:
         with get_connection().cursor() as cur:
             return cur.execute(
                 """
-                SELECT title, description 
+                SELECT title, description, speaker
                 FROM seminars
                 WHERE id = %s;
                 """,

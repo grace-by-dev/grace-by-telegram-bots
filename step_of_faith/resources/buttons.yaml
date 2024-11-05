@@ -57,10 +57,6 @@
 
   row_width: 2
   children:
-    # - text: "Telegram"
-    #   url: "https://t.me/stepoffaith"
-    # - text: "Instagram"
-    #   url: "https://instagram.com/step.of.faithh"
     - text: "Назад"
       data: "menu"
 
@@ -177,13 +173,17 @@
 
 "^seminars::(\\d+)::options$":
   reply: "Выберите тему:"
-  row_width: 2
+  row_width: 1
   children:
     - text: "Назад"
       data: "seminars"
 
 "^seminars::(\\d+)::options::(\\d+)$":
-  reply: "*{title}*\n{description}\n"
+  reply: |
+    *«{title}»*
+    Спикер: *{speaker}*
+    Описание / тезисы / вопросы:
+    {description}
   row_width: 2
   children:
     - text: "Записаться"
