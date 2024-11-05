@@ -8,10 +8,23 @@
       data: "counseling"
     - text: "Семинары"
       data: "seminars"
+    - text: "Обратная связь"
+      data: "feedback"
     - text: "Подпишись"
       data: "subscribe"
     - text: "Церковные служения"
       data: "church_schedule"
+
+"^feedback$":
+  reply: |
+    *Обратная связь*
+    Ваши свидетельства вдохновляют нас, а замечания помогут стать лучше!
+  row_width: 1
+  children:
+    - text: Форма обратной связи
+      url: https://docs.google.com/forms/d/e/1FAIpQLSe2ZvrhKM14yAsqFS3MBnPhdH6Rq25Uiz8bd0VfyJ3QmZMFxA/viewform
+    - text: Меню
+      data: menu
 
 "^schedule$":
   reply: "*Выберите день конференции*"

@@ -165,6 +165,7 @@ class PostgreSQL:
                         ) AS rn 
                     FROM 
                         spaces
+                    WHERE seminar_number = %s
                 ), 
                 merged_seminars AS (
                     SELECT 
@@ -182,7 +183,7 @@ class PostgreSQL:
                 merged_seminars
                 order by seminar_id
                 """,
-                (seminar_number,),
+                (seminar_number, seminar_number),
             ).fetchall()
 
     def get_seminar_info(self, seminar_id: int) -> list:
@@ -249,7 +250,7 @@ class PostgreSQL:
                         seminars s
                     LEFT JOIN seminar_enrollement se 
                     ON s.id = se.seminar_id
-                    WHERE se.seminar_number = %s or se.seminar_number is null
+                    WHERE se.seminar_number = %(seminar_number)s or se.seminar_number is null
                     GROUP BY s.id
                     ORDER BY COUNT(se.user_id) DESC
                 ),
@@ -259,68 +260,20 @@ class PostgreSQL:
                         capacity,
                         ROW_NUMBER() OVER (ORDER BY capacity DESC) AS rn
                     FROM spaces
+                    WHERE seminar_number = %(seminar_number)s
                 ),
                 merged_seminars AS (
                     SELECT 
                         s.seminar_id
                     FROM seminar_counts AS s
                     JOIN room_capacities AS r ON s.rn = r.rn
-                    WHERE s.seminar_id = %s and s.number_of_people < r.capacity
+                    WHERE s.seminar_id = %(seminar_id)s and s.number_of_people < r.capacity
                 )
                 UPDATE seminar_enrollement
                 SET seminar_id = merged_seminars.seminar_id
                 FROM merged_seminars
-                WHERE user_id = %s and seminar_number = %s;
+                WHERE user_id = %(user_id)s and seminar_number = %(seminar_number)s;
                 """,
-                (seminar_number, seminar_id, user_id, seminar_number),
+                {"seminar_number": seminar_number, "seminar_id": seminar_id, "user_id": user_id},
             )
             return cur.rowcount > 0
-
-    def get_seminar_rooms(self, seminar_number: int) -> object:
-        with get_connection() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                WITH seminar_counts AS (
-                    SELECT 
-                        s.id AS seminar_id,
-                        COUNT(se.user_id) AS number_of_people,
-                        ROW_NUMBER() OVER (ORDER BY COUNT(se.user_id) DESC) AS rn
-                    FROM 
-                        seminars s
-                    LEFT JOIN seminar_enrollement se 
-                    ON s.id = se.seminar_id
-                    WHERE se.seminar_number = %s or se.seminar_number is null
-                    GROUP BY s.id
-                    ORDER BY COUNT(se.user_id) DESC
-                ),
-                room_capacities AS (
-                    SELECT 
-                        room,
-                        capacity,
-                        ROW_NUMBER() OVER (ORDER BY capacity DESC) AS rn
-                    FROM spaces
-                ),
-                merged_seminars AS (
-                    SELECT 
-                        s.seminar_id,
-                        s.number_of_people,
-                        r.room,
-                        r.capacity
-                    FROM seminar_counts AS s
-                    JOIN room_capacities AS r ON s.rn = r.rn
-                    WHERE s.number_of_people < r.capacity
-                )
-                SELECT 
-                    seminar_id,
-                    number_of_people,
-                    room,
-                    capacity
-                FROM merged_seminars;
-                """,
-                (seminar_number,),
-            )
-            result = {
-                row[0]: {"number_of_people": row[1], "room": row[2], "capacity": row[3]}
-                for row in cur.fetchall()
-            }
-            return result

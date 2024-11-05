@@ -316,6 +316,7 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
         "counseling::options": show_counselors,
         "counseling::my": show_my_counseling,
         "counseling::my::cancel": cancel_counseling,
+        "feedback": show_basic_button,
     }
     if callback.data in static_callbacks_dict:
         static_callbacks_dict[callback.data](callback, buttons[f"^{callback.data}$"])
