@@ -357,7 +357,7 @@ def check_callback_data(callback: types.CallbackQuery) -> None:
 @bot.message_handler(commands=["start"])
 def menu(message: types.Message) -> None:
     if not db.check_user_id(message.from_user.id):
-        db.add_to_database(message.from_user.id, message.from_user.username)
+        db.add_to_database(message.from_user.id, message.from_user.first_name)
     mq_manager.send_keyboard_message(message, **buttons["^menu$"])
 
 

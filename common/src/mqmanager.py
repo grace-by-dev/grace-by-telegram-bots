@@ -12,15 +12,15 @@ class MQManager:
     def __init__(self, queue: str, max_priority: int, user: str, password: str) -> None:
         self.queue = queue
 
-        params = pika.ConnectionParameters(
+        self.params = pika.ConnectionParameters(
             "localhost", credentials=pika.credentials.PlainCredentials(user, password)
         )
-        connection = pika.BlockingConnection(params)
-
-        self.channel = connection.channel()
-        self.channel.queue_declare(
+        pika.BlockingConnection(self.params).channel().queue_declare(
             queue=queue, arguments={"x-max-priority": max_priority}, durable=True
         )
+
+    def get_connection(self) -> pika.BlockingConnection:
+        return pika.BlockingConnection(self.params)
 
     def edit_keyboard_message(
         self,
@@ -40,7 +40,7 @@ class MQManager:
                 "parse_mode": "Markdown",
             }
         )
-        self.channel.basic_publish(
+        self.get_connection().channel().basic_publish(
             exchange="",
             routing_key=self.queue,
             body=body,
@@ -64,7 +64,7 @@ class MQManager:
                 "parse_mode": "Markdown",
             }
         )
-        self.channel.basic_publish(
+        self.get_connection().channel().basic_publish(
             exchange="",
             routing_key=self.queue,
             body=body,
