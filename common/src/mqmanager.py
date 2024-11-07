@@ -2,6 +2,7 @@ import json
 from typing import Dict
 from typing import List
 
+from omegaconf import ListConfig
 from omegaconf import OmegaConf
 import pika
 from telebot import types
@@ -27,6 +28,7 @@ class MQManager:
         reply: str,
         row_width: int,
         children: List[Dict[str, str]],
+        priority: int = 0,
     ) -> None:
         body = json.dumps(
             {
@@ -34,7 +36,7 @@ class MQManager:
                 "message_id": callback.message.id,
                 "text": reply,
                 "row_width": row_width,
-                "children": OmegaConf.to_object(children),
+                "children": OmegaConf.to_object(ListConfig(children)),
                 "parse_mode": "Markdown",
             }
         )
@@ -42,7 +44,7 @@ class MQManager:
             exchange="",
             routing_key=self.queue,
             body=body,
-            properties=pika.BasicProperties(priority=1),
+            properties=pika.BasicProperties(priority=priority),
         )
 
     def send_keyboard_message(
@@ -51,13 +53,14 @@ class MQManager:
         reply: str,
         row_width: int,
         children: List[Dict[str, str]],
+        priority: int = 0,
     ) -> None:
         body = json.dumps(
             {
                 "chat_id": message.chat.id,
                 "text": reply,
                 "row_width": row_width,
-                "children": OmegaConf.to_object(children),
+                "children": OmegaConf.to_object(ListConfig(children)),
                 "parse_mode": "Markdown",
             }
         )
@@ -65,5 +68,5 @@ class MQManager:
             exchange="",
             routing_key=self.queue,
             body=body,
-            properties=pika.BasicProperties(priority=1),
+            properties=pika.BasicProperties(priority=priority),
         )

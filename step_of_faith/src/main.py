@@ -74,8 +74,12 @@ def show_schedule_day(callback: types.CallbackQuery, button: DictConfig, day: in
         for (time, event) in schedule
     ]
     schedule = "\n".join([button.reply.header.format(day=day_text), *schedule])
-    mq_manager.mq_manager.edit_keyboard_message(
-        callback, reply=schedule, row_width=button.row_width, children=button.children
+    mq_manager.edit_keyboard_message(
+        callback,
+        reply=schedule,
+        row_width=button.row_width,
+        children=button.children,
+        priority=button.priority,
     )
 
 
