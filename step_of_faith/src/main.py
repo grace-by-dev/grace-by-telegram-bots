@@ -201,13 +201,15 @@ def show_seminar_options(
     callback: types.CallbackQuery, button: DictConfig, seminar_number: int
 ) -> None:
     seminars = db.get_seminars(seminar_number)
+    reply = button.first if seminar_number == "1" else button.second
+    reply += "\n" + button.body
     children = []
     back = button.children[0]
     for seminar_id, title in seminars:
         children.append({"text": title, "data": f"{callback.data}::{seminar_id}"})
     children.append({"text": back.text, "data": back.data.format(seminar_number=seminar_number)})
     edit_keyboard_message(
-        callback, reply=button.reply, row_width=button.row_width, children=children, bot=bot
+        callback, reply=reply, row_width=button.row_width, children=children, bot=bot
     )
 
 
