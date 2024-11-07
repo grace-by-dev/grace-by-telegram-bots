@@ -248,26 +248,26 @@ def enroll_for_seminar(
     callback: types.CallbackQuery, button: DictConfig, seminar_number: int, seminar_id: int
 ) -> None:
     seminar_id = int(seminar_id)
-    match validate_timediff(db.get_seminar_start_time(seminar_number)):
-        case TimediffCheckStatus.too_close:
-            button = button.too_close
-            mq_manager.edit_keyboard_message(
-                callback,
-                button.reply.format(minutes=MIN_BOOKING_TIME),
-                button.row_width,
-                button.children,
-                bot=bot,
-            )
-        case TimediffCheckStatus.passed:
-            mq_manager.edit_keyboard_message(callback, **button.passed)
-        case TimediffCheckStatus.success:
-            status = db.enroll_for_seminar(
-                seminar_id=seminar_id,
-                user_id=callback.message.chat.id,
-                seminar_number=seminar_number,
-            )
-            button = button.success if status else button.room_failure
-            mq_manager.edit_keyboard_message(callback, **button)
+    # match validate_timediff(db.get_seminar_start_time(seminar_number)):
+    #     case TimediffCheckStatus.too_close:
+    #         button = button.too_close
+    #         mq_manager.edit_keyboard_message(
+    #             callback,
+    #             button.reply.format(minutes=MIN_BOOKING_TIME),
+    #             button.row_width,
+    #             button.children,
+    #             bot=bot,
+    #         )
+    #     case TimediffCheckStatus.passed:
+    #         mq_manager.edit_keyboard_message(callback, **button.passed)
+    #     case TimediffCheckStatus.success:
+    status = db.enroll_for_seminar(
+        seminar_id=seminar_id,
+        user_id=callback.message.chat.id,
+        seminar_number=seminar_number,
+    )
+    button = button.success if status else button.room_failure
+    mq_manager.edit_keyboard_message(callback, **button)
 
 
 def show_my_seminar(callback: types.CallbackQuery, button: DictConfig, seminar_number: int) -> None:
@@ -295,22 +295,22 @@ def show_my_seminar(callback: types.CallbackQuery, button: DictConfig, seminar_n
 
 
 def cancel_my_seminar(callback: types.CallbackQuery, button: DictConfig, seminar_num: int) -> None:
-    time = db.get_seminar_start_time(seminar_num)
-    match validate_timediff(time):
-        case TimediffCheckStatus.too_close:
-            button = button.too_close
-            mq_manager.edit_keyboard_message(
-                callback,
-                button.reply.format(minutes=MIN_BOOKING_TIME),
-                button.row_width,
-                button.children,
-                bot=bot,
-            )
-        case TimediffCheckStatus.passed:
-            mq_manager.edit_keyboard_message(callback, **button.passed)
-        case TimediffCheckStatus.success:
-            db.cancel_my_seminar(callback.message.chat.id, seminar_num)
-            mq_manager.edit_keyboard_message(callback, **button.success)
+    # time = db.get_seminar_start_time(seminar_num)
+    # match validate_timediff(time):
+    #     case TimediffCheckStatus.too_close:
+    #         button = button.too_close
+    #         mq_manager.edit_keyboard_message(
+    #             callback,
+    #             button.reply.format(minutes=MIN_BOOKING_TIME),
+    #             button.row_width,
+    #             button.children,
+    #             bot=bot,
+    #         )
+    #     case TimediffCheckStatus.passed:
+    #         mq_manager.edit_keyboard_message(callback, **button.passed)
+    #     case TimediffCheckStatus.success:
+    db.cancel_my_seminar(callback.message.chat.id, seminar_num)
+    mq_manager.edit_keyboard_message(callback, **button.success)
 
 
 def show_basic_button(callback: types.CallbackQuery, button: DictConfig) -> None:

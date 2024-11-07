@@ -5,8 +5,8 @@
   children:
     - text: "Расписание"
       data: "schedule"
-    - text: "Душепопечение"
-      data: "counseling"
+    # - text: "Душепопечение"
+    #   data: "counseling"
     - text: "Семинары"
       data: "seminars"
     - text: "Обратная связь"

@@ -134,7 +134,8 @@ class PostgreSQL:
         with get_connection().cursor() as cur:
             return cur.execute(
                 """
-                WITH seminar_counts AS (
+                 WITH se as (select * from seminar_enrollement where seminar_number = %s),
+                 seminar_counts AS (
                     SELECT 
                         s.id AS seminar_id, 
                         s.title, 
@@ -146,9 +147,6 @@ class PostgreSQL:
                     FROM 
                         seminars s 
                         LEFT JOIN seminar_enrollement se ON s.id = se.seminar_id 
-                    WHERE 
-                        se.seminar_number = %s 
-                        or se.seminar_number is null 
                     GROUP BY 
                         s.id, 
                         s.title 
@@ -241,14 +239,19 @@ class PostgreSQL:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                WITH seminar_counts AS (
+                WITH se as (
+                    select * from seminar_enrollement 
+                    where seminar_number = %(seminar_number)s
+                ),
+
+                seminar_counts AS (
                     SELECT 
                         s.id AS seminar_id,
                         COUNT(se.user_id) AS number_of_people,
                         RANK() OVER (ORDER BY COUNT(se.user_id) DESC) AS rn
                     FROM 
                         seminars s
-                    LEFT JOIN seminar_enrollement se 
+                    LEFT JOIN se 
                     ON s.id = se.seminar_id
                     WHERE se.seminar_number = %(seminar_number)s or se.seminar_number is null
                     GROUP BY s.id
