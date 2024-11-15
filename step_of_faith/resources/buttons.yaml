@@ -1,21 +1,39 @@
 "^menu$":
-  reply: "Меню:"
+  reply: "*Меню:*"
   row_width: 2
+  priority: 10
   children:
     - text: "Расписание"
       data: "schedule"
-    - text: "Душепопечение"
-      data: "counseling"
+    # - text: "Душепопечение"
+    #   data: "counseling"
     - text: "Семинары"
       data: "seminars"
+    - text: "Обратная связь"
+      data: "feedback"
     - text: "Подпишись"
       data: "subscribe"
     - text: "Церковные служения"
       data: "church_schedule"
 
+"^feedback$":
+  reply: |
+    *Поделись историей своего «Шага Веры»!*
+
+    🔹 Если на протяжении конференции ты получил обновление через слово, откровение, покаяние, освобождение, исцеление, крещение Святым Духом, то обязательно поделись с нами - расскажи своё свидетельство 🙌🏼
+    🔹 Также ты можешь предложить, что следует улучшить в последующих конференциях 🌿
+  row_width: 1
+  priority: 10
+  children:
+    - text: Форма обратной связи
+      url: https://docs.google.com/forms/d/e/1FAIpQLSe2ZvrhKM14yAsqFS3MBnPhdH6Rq25Uiz8bd0VfyJ3QmZMFxA/viewform
+    - text: Меню
+      data: menu
+
 "^schedule$":
-  reply: "Выберите день конференции:"
+  reply: "*Выберите день конференции*"
   row_width: 2
+  priority: 5
   children:
     - text: "Четверг"
       data: "schedule::day::1"
@@ -25,7 +43,7 @@
       data: "menu"
 
 "^counseling$":
-  reply: "Запись к служителю"
+  reply: "*Запись к служителю*"
   row_width: 2
   children:
     - text: "Записаться"
@@ -36,31 +54,35 @@
       data: "menu"
 
 "^seminars$":
-  reply: |
-    Семинары - это время когда...
-    В этом году у вас будет возможность посетить *2* семинара (смотри расписание мероприятрия)
+  reply: "*Выберите поток семинаров*"
   row_width: 2
   children:
-    - text: "Записаться"
-      data: "seminars::options"
-    - text: "Мои семинары"
-      data: "seminars::my"
+    - text: "Первый"
+      data: "seminars::1"
+    - text: "Второй"
+      data: "seminars::2"
     - text: "Назад"
       data: "menu"
 
 "^subscribe$":
-  reply: "Мы в сети:"
+  reply: |
+    *Ссылки на соц. сети:*
+    🔹 Конференция «Шаг Веры»:
+    [Instagram](https://instagram.com/step.of.faithh) / [Telegram](https://t.me/stepoffaith)
+
+    🔹 Молодёжное служение «GraceYouth»:
+    [Instagram](https://www.instagram.com/grc__youth/) / [Telegram](https://t.me/minskgrace_youth) / [YouTube](https://www.youtube.com/@minskgraceyouth)
+
   row_width: 2
   children:
-    - text: "Telegram"
-      url: "https://t.me/stepoffaith"
-    - text: "Instagram"
-      url: "https://instagram.com/step.of.faithh"
     - text: "Назад"
       data: "menu"
 
 "^counseling::options$":
-  reply: "Выберите служителя:"
+  reply: |
+    *Выберите служителя:*
+    🔺 Запись предоставляется лишь к одному служителю, только на одно время!
+    🔺 В случае повторной записи к другому служителю или время, бронь автоматически перезапишется а предыдущая сбросится.
   row_width: 2
   children:
     - text: "Назад"
@@ -70,22 +92,50 @@
   reply: |
     *{name}*
     {n} свободных окошек
-    {description}
+    Место: {place}
   row_width: 1
   child_template: "🕓 {time}"
   children:
     - text: "Назад"
       data: "counseling::options"
 
-"^counseling::options::(\\d+)::(\\d{1,2}):(\\d{1,2})$":
+"^counseling::options::(\\d+)::(\\d{1,2}:\\d{1,2})$":
   success:
-    reply: "Запись произведена успешно"
+    reply: "Запись служителю произведена успешно"
     row_width: 1
     children:
       - text: "В меню"
         data: "menu"
-  failure: 
-    reply: "Кто-то тебя опередил, попробуй другое время"
+  too_close:
+    reply: "Нельзя запиcаться на встречу менее чем за {minutes} минут до начала"
+    row_width: 1
+    children:
+      - text: Список служителей
+        data: "counseling::options"
+      - text: "В меню"
+        data: "menu"
+  passed:
+    reply: "Эта встреча уже прошла"
+    row_width: 1
+    children:
+      - text: Список служителей
+        data: "counseling::options"
+      - text: "В меню"
+        data: "menu"
+  booking_too_close:
+    reply: "Не получилось записаться, так как вы уже записаны на встречу со служителем, до которой меньше {minutes} минут"
+    row_width: 1
+    children:
+      - text: "В меню"
+        data: "menu"
+  booking_passed:
+    reply: "Не получилось записаться, так как вы уже встречались со служителем"
+    row_width: 1
+    children:
+      - text: "В меню"
+        data: "menu"
+  too_slow: 
+    reply: "Кто-то вас опередил, попробуйте другое время"
     row_width: 2
     children:
       - text: Список служителей
@@ -95,9 +145,10 @@
 
 "^schedule::day::(\\d+)$":
   reply:
-    header: "Расписание:"
-    row_template: "\n🔸 {time}  {event}"
+    header: "*Расписание ({day}):*"
+    row_template: "🔸 {time} - {event}"
   row_width: 1
+  priority: 5
   children:
     - text: "Назад"
       data: "schedule"
@@ -105,8 +156,9 @@
 "^counseling::my$":
   exists:
     reply: |
-      {name} примет вас в {time}
-      {description}
+      Служитель: *{name}*
+      Время: {time}
+      Место: {place}
     row_width: 2
     children:
       - text: "Отменить запись"
@@ -114,88 +166,126 @@
       - text: "Назад"
         data: "counseling"
   missing:
-    reply: "Вы не записаны на душепопечение"
+    reply: "У вас отсутствует запись встречи со служителем"
     row_width: 1
     children:
       - text: "Назад"
         data: "counseling"
 
 "^counseling::my::cancel$":
-  reply: "Запись отменена"
+  reply: 
+    success: "Запись отменена"
+    failure: "Нельзя отменить запись менее, чем за {minutes} минут до начала"
   row_width: 1
   children:
     - text: "В меню"
       data: "menu"
 
-"^seminars::options$":
-  reply: "Выберите семинар:"
-  row_width: 2
-  children:
-    - text: "Назад"
-      data: "seminars"
-
-"^seminars::options::(\\d+)$":
-  reply: "*{title}*\n{description}"
+"^seminars::(\\d+)$":
+  first: "*Первый поток семинаров (15:00-16:00)*"
+  second: "*Второй поток семинаров (16:00-17:00)*"
   row_width: 2
   children:
     - text: "Записаться"
-      data: "seminars::options::{seminar_id}::enroll"
-    - text: "Назад"
-      data: "seminars::options"
-
-"^seminars::options::(\\d+)::enroll$":
-  reply: "Выберите номер семинара"
-  row_width: 2
-  children:
-    - text: "Первый"
-      data: "seminars::options::{seminar_id}::enroll::1"
-    - text: "Второй"
-      data: "seminars::options::{seminar_id}::enroll::2"
-    - text: "Назад"
-      data: "seminars::options::{seminar_id}"
-
-"^seminars::options::(\\d+)::enroll::(\\d)$":
-  reply: "Запись произведена успешно"
-  row_width: 2
-  children:
-    - text: "К семинарам"
-      data: "seminars::options"
-    - text: "В меню"
-      data: "menu"
-
-
-"^seminars::my$":
-  reply: "Мои семинары:"
-  row_width: 2
-  children:
-    - text: "Семинар №1"
-      data: "seminars::my::1"
-    - text: "Семинар №2"
-      data: "seminars::my::2"
+      data: "seminars::{seminar_number}::options"
+    - text: "Моя запись"
+      data: "seminars::{seminar_number}::my"
     - text: "Назад"
       data: "seminars"
 
-"^seminars::my::(\\d{1,2})$":
+"^seminars::(\\d+)::options$":
+  first: "*Выберите доступный семинар на первый поток (15:00 - 16:00):*"
+  second: "*Выберите доступный семинар на второй поток (16:00 - 17:00):*"
+  body: | 
+    🔺 Запись предоставляется лишь на один семинар в потоке!
+    🔺 В случае повторной записи на другой семинар (в этом же потоке), бронь автоматически перезапишется а предыдущая сбросится.
+  row_width: 1
+  children:
+    - text: "Назад"
+      data: "seminars::{seminar_number}"
+
+"^seminars::(\\d+)::options::(\\d+)$":
+  reply: |
+    Тема: *«{title}»*
+    Спикер: *{speaker}*
+
+    Тезисы семинара:
+    {description}
+  row_width: 2
+  children:
+    - text: "Записаться"
+      data: "seminars::{seminar_number}::options::{seminar_id}::enroll"
+    - text: "Назад"
+      data: "seminars::{seminar_number}::options"
+
+"^seminars::(\\d+)::options::(\\d+)::enroll$":
+  success:
+    reply: "Запись на семинар произведена успешно"
+    row_width: 2
+    children:
+      - text: "В меню"
+        data: "menu"
+  room_failure:
+    reply: "На данный семинар не осталось свободных мест"
+    row_width: 2
+    children:
+      - text: "Назад к выбору"
+        data: "seminars::{seminar_number}::options"
+      - text: "В меню"
+        data: "menu"
+  too_close:
+    reply: "Нельзя записаться на семинар менее чем за {minutes} минут до начала"
+    row_width: 2
+    children:
+      - text: "В меню"
+        data: "menu"
+  passed:
+    reply: "Семинар прошел"
+    row_width: 2
+    children:
+      - text: "В меню"
+        data: "menu"
+
+"^seminars::(\\d+)::my$":
   reply: 
-    template: "{title}\n\n{description}"
-    missing: "Вы не записались на этот семинар"
+    exists: |
+      Тема: *«{title}»*
+      Спикер: *{speaker}*
+
+      Тезисы семинара:
+      {description}
+    missing: "Вы пока не записаны на {number_text} поток семинаров"
   row_width: 2
   children:
     - text: "Отписаться"
+      data: "seminars::{seminar_number}::my::cancel"
     - text: "Назад"
-      data: "seminars::my"
+      data: "seminars::{seminar_number}"
 
-"^seminars::my::(\\d{1,2})::cancel$":
-  reply: "Вы отписались от семинара"
-  row_width: 1
-  children:
-    - text: "В меню"
-      data: "menu"
+"^seminars::(\\d+)::my::cancel$":
+  success:
+    reply: "Вы отписались от семинара"
+    row_width: 1
+    children:
+      - text: "В меню"
+        data: "menu"
+  too_close:
+    reply: "Нельзя отписаться от семинара менее, чем за {minutes} минут до начала"
+    row_width: 1
+    children:
+      - text: "В меню"
+        data: "menu"
+  passed:
+    reply: "Семинар уже прошел"
+    row_width: 1
+    children:
+      - text: "В меню"
+        data: "menu"
 
 
 "^church_schedule$":
   reply: |
-    Служения:
+    *Служения:*
     🔸 понедельник (19:00) - молитвенное служение;
     🔸 среда/четверг (19:00) - служение регионов;
     🔸 пятница (19:00) - молодёжное служение;
